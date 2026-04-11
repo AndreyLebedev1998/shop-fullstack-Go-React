@@ -54,13 +54,15 @@ type Products struct {
 }
 
 type ProblemProducts struct {
-	ProductId            int    `json:"product_id"`
-	AvailabilityOfPieces int    `json:"availability_of_pieces"`
-	ProductName          string `json:"product_name"`
+	ProductId            int     `json:"product_id"`
+	AvailabilityOfPieces int     `json:"availability_of_pieces"`
+	ProductName          string  `json:"product_name"`
+	ImageUrl             *string `json:"image_url"`
 }
 
 type ProductsCheck struct {
-	ProductId            int    `json:"product_id"`
-	AvailabilityOfPieces int    `json:"availability_of_pieces"`
-	ProductName          string `json:"product_name"`
+	ProductId            int     `json:"product_id"`
+	AvailabilityOfPieces int     `json:"availability_of_pieces"`
+	ProductName          string  `json:"product_name"`
+	ImageUrl             *string `json:"image_url"`
 }

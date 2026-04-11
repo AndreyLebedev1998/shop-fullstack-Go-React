@@ -57,7 +57,7 @@ func CreateOrder(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		productsFromOrder = append(productsFromOrder, product)
 	}
 
-	var queryCheckQuantityProduct = `SELECT id, availability_of_pieces, product_name FROM products WHERE id = ANY($1)`
+	var queryCheckQuantityProduct = `SELECT id, availability_of_pieces, product_name, image_url FROM products WHERE id = ANY($1)`
 
 	rows, err := db.QueryContext(ctx, queryCheckQuantityProduct, productsIds)
 
@@ -68,10 +68,14 @@ func CreateOrder(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 
 	for rows.Next() {
 		var productCheck models.ProductsCheck
-		err := rows.Scan(&productCheck.ProductId, &productCheck.AvailabilityOfPieces, &productCheck.ProductName)
+		err := rows.Scan(&productCheck.ProductId, &productCheck.AvailabilityOfPieces, &productCheck.ProductName, &productCheck.ImageUrl)
 		if err != nil {
 			http.Error(w, "Error reading row", http.StatusInternalServerError)
 			return
+		}
+		if productCheck.ImageUrl != nil {
+			url := "http://localhost:8092" + *productCheck.ImageUrl
+			productCheck.ImageUrl = &url
 		}
 
 		productsCheck = append(productsCheck, productCheck)
