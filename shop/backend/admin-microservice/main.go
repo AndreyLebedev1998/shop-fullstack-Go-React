@@ -3,6 +3,7 @@ package main
 import (
 	"admin-microservice/cors"
 	"admin-microservice/endpoints/create"
+	"admin-microservice/endpoints/orders"
 	"context"
 	"database/sql"
 	"fmt"
@@ -64,10 +65,22 @@ func main() {
 		create.CreateProduct(w, r, db)
 	})))
 
+	mux.Handle("/create-category", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		create.CreateCategory(w, r, db)
+	})))
+
 	mux.Handle("/uploads-products-images/", http.StripPrefix(
 		"/uploads-products-images/",
 		http.FileServer(http.Dir("./uploads-products-images")),
 	))
+
+	mux.Handle("/change-status-order", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		orders.ChangeStatusOrder(w, r, db)
+	})))
+
+	mux.Handle("/change-status-order-paid", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		orders.ChangeStatusPaidOrder(w, r, db)
+	})))
 
 	http.ListenAndServe(":8080", mux)
 }

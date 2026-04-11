@@ -22,9 +22,8 @@ type NewOrder struct {
 }
 
 type OrderItem struct {
-	ProductId int     `json:"product_id"`
-	Quantity  int     `json:"quantity"`
-	Price     float64 `json:"price"`
+	ProductId int `json:"product_id"`
+	Quantity  int `json:"quantity"`
 }
 
 type NewOrderId struct {
@@ -52,4 +51,16 @@ type Products struct {
 	CategoryId   int     `json:"category_id"`
 	CategoryName string  `json:"category_name"`
 	ImageUrl     *string `json:"image_url"`
+}
+
+type ProblemProducts struct {
+	ProductId            int    `json:"product_id"`
+	AvailabilityOfPieces int    `json:"availability_of_pieces"`
+	ProductName          string `json:"product_name"`
+}
+
+type ProductsCheck struct {
+	ProductId            int    `json:"product_id"`
+	AvailabilityOfPieces int    `json:"availability_of_pieces"`
+	ProductName          string `json:"product_name"`
 }

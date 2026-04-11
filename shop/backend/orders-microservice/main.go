@@ -72,5 +72,9 @@ func main() {
 		orders.GetOrdersByParametr(w, r, db)
 	})))
 
+	mux.Handle("/get-orders-by-date-from-user", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		orders.GetOrdersOneDateByUser(w, r, db)
+	})))
+
 	http.ListenAndServe(":8080", mux)
 }

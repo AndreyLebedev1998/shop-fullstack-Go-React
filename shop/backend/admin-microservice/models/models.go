@@ -18,3 +18,16 @@ type Product struct {
 type NewCategory struct {
 	CategoryName string `json:"category_name"`
 }
+
+type Category struct {
+	Id           int    `json:"id"`
+	CategoryName string `json:"category_name"`
+}
+
+type OrderStatus struct {
+	Status string `json:"status"`
+}
+
+type OrderStatusPaid struct {
+	StatusPaid string `json:"status_paid"`
+}

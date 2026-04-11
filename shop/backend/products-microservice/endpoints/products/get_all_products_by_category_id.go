@@ -41,7 +41,6 @@ func GetAllProductsByCategoryId(w http.ResponseWriter, r *http.Request, db *sql.
 	if err == nil {
 		if json.Unmarshal([]byte(val), &products) == nil {
 			w.Header().Add("Content-Type", "application/json")
-			fmt.Println("Redis")
 			json.NewEncoder(w).Encode(products)
 			return
 		}
