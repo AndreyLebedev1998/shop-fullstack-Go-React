@@ -4,30 +4,27 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 	"net/http"
 	"orders-microservice/cors"
 	"orders-microservice/endpoints/orders"
 	"os"
 	"time"
 
+	product "github.com/AndreyLebedev1998/shop-gRPC-product"
 	"github.com/redis/go-redis/v9"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/backoff"
+	"google.golang.org/grpc/credentials/insecure"
 
 	_ "github.com/lib/pq"
 )
 
 func main() {
-	host := os.Getenv("DB_HOST")
-	user := os.Getenv("DB_USER")
-	password := os.Getenv("DB_PASSWORD")
-	dbname := os.Getenv("DB_NAME")
+	connStr := os.Getenv("DB_CONN")
 	var db *sql.DB
 
-	psqlInfo := fmt.Sprintf(
-		"host=%s user=%s password=%s dbname=%s sslmode=disable",
-		host, user, password, dbname,
-	)
-
-	db, err := sql.Open("postgres", psqlInfo)
+	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		panic(err)
 	}
@@ -60,8 +57,33 @@ func main() {
 
 	mux := http.NewServeMux()
 
+	conn, err := grpc.Dial("products-microservice:50051", grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithConnectParams(grpc.ConnectParams{
+			Backoff: backoff.Config{
+				BaseDelay:  100 * time.Millisecond,
+				MaxDelay:   5 * time.Second,
+				Multiplier: 1.6,
+				Jitter:     0.2,
+			},
+
+			MinConnectTimeout: 5 * time.Second,
+		}),
+	)
+
+	if err != nil {
+		log.Fatal("gRPC dial error:", err)
+	}
+
+	defer conn.Close()
+
+	client := product.NewProductsServiceClient(conn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+
+	defer cancel()
+
 	mux.Handle("/create-order", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		orders.CreateOrder(w, r, db)
+		orders.CreateOrder(w, r, db, client)
 	})))
 
 	mux.Handle("/change-order", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -74,6 +96,10 @@ func main() {
 
 	mux.Handle("/get-orders-by-date-from-user", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		orders.GetOrdersOneDateByUser(w, r, db)
+	})))
+
+	mux.Handle("/get-orders-from-user-between-date", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		orders.GetOrdersByUserBetweenDate(w, r, db)
 	})))
 
 	http.ListenAndServe(":8080", mux)

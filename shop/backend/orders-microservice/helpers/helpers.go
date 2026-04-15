@@ -34,3 +34,11 @@ func ForRowsAfterQuery(rows *sql.Rows, ordersMap map[int]*models.FullOrder) erro
 	}
 	return rows.Err()
 }
+
+func ConvertIntToInt64(in []int) []int64 {
+	out := make([]int64, len(in))
+	for i, v := range in {
+		out[i] = int64(v)
+	}
+	return out
+}

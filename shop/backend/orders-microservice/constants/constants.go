@@ -12,6 +12,7 @@ const (
 	OrderStatusDelivered  OrderStatus = "delivered"
 	OrderStatusCompleted  OrderStatus = "completed"
 	OrderStatusCancelled  OrderStatus = "cancelled"
+	OrderStatusFailed     OrderStatus = "failed"
 )
 
 const (

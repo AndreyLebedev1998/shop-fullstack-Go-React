@@ -1,19 +1,28 @@
 package orders
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"net/http"
+	"orders-microservice/helpers"
 	"orders-microservice/models"
+
+	product "github.com/AndreyLebedev1998/shop-gRPC-product"
 )
 
-func CreateOrder(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+func markOrderFailed(ctx context.Context, db *sql.DB, orderId int) {
+	_, _ = db.ExecContext(ctx, "UPDATE orders SET status = $1 WHERE id = $2", "failed", orderId)
+}
+
+func CreateOrder(w http.ResponseWriter, r *http.Request, db *sql.DB, client product.ProductsServiceClient) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	var order models.NewOrder
+	ctx := r.Context()
 
 	if err := json.NewDecoder(r.Body).Decode(&order); err != nil {
 		http.Error(w, "Bad request", http.StatusBadRequest)
@@ -30,12 +39,25 @@ func CreateOrder(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		return
 	}
 
+	var product_ids []int
+
+	for _, p := range order.OrderItems {
+		product_ids = append(product_ids, p.ProductId)
+	}
+
+	resp, err := client.GetProductsByIds(ctx, &product.GetProductsRequest{
+		ProductIds: helpers.ConvertIntToInt64(product_ids),
+	})
+
+	if err != nil {
+		http.Error(w, "server error", http.StatusInternalServerError)
+		return
+	}
+
 	if order.Status == nil || *order.Status != "pending" {
 		val := "pending"
 		order.Status = &val
 	}
-
-	ctx := r.Context()
 
 	queryOrder := `
 		INSERT INTO orders (user_id, email, phone, status, total_price)
@@ -48,43 +70,34 @@ func CreateOrder(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		VALUES ($1, $2, $3, $4)
 	`
 
-	var productsIds []int
-	var productsCheck []models.ProductsCheck
 	var productsFromOrder []models.OrderItem
 	var problemProducts []models.ProblemProducts
+	var productsInOrder []models.ProductsForOrder
 	for _, product := range order.OrderItems {
-		productsIds = append(productsIds, product.ProductId)
 		productsFromOrder = append(productsFromOrder, product)
 	}
 
-	var queryCheckQuantityProduct = `SELECT id, availability_of_pieces, product_name, image_url FROM products WHERE id = ANY($1)`
-
-	rows, err := db.QueryContext(ctx, queryCheckQuantityProduct, productsIds)
-
-	if err != nil {
-		http.Error(w, "error check products for stock", http.StatusInternalServerError)
-		return
-	}
-
-	for rows.Next() {
-		var productCheck models.ProductsCheck
-		err := rows.Scan(&productCheck.ProductId, &productCheck.AvailabilityOfPieces, &productCheck.ProductName, &productCheck.ImageUrl)
-		if err != nil {
-			http.Error(w, "Error reading row", http.StatusInternalServerError)
-			return
-		}
-		if productCheck.ImageUrl != nil {
-			url := "http://localhost:8092" + *productCheck.ImageUrl
-			productCheck.ImageUrl = &url
+	for i, product := range resp.Products {
+		if product.AvailabilityOfPieces < int64(productsFromOrder[i].Quantity) {
+			var problemProduct models.ProblemProducts
+			problemProduct.AvailabilityOfPieces = int(product.AvailabilityOfPieces)
+			problemProduct.ImageUrl = &product.ImageUrl
+			problemProduct.ProductId = int(product.Id)
+			problemProduct.ProductName = product.ProductName
+			problemProducts = append(problemProducts, models.ProblemProducts(problemProduct))
 		}
 
-		productsCheck = append(productsCheck, productCheck)
-	}
+		var productInOrder models.ProductsForOrder
 
-	for i, product := range productsCheck {
-		if product.AvailabilityOfPieces < productsFromOrder[i].Quantity {
-			problemProducts = append(problemProducts, models.ProblemProducts(product))
-		}
+		productInOrder.Id = int(product.Id)
+		productInOrder.ProductName = product.ProductName
+		productInOrder.CategoryId = int(product.CategoryId)
+		productInOrder.CategoryName = product.CategoryName
+		productInOrder.ImageUrl = &product.ImageUrl
+		productInOrder.Quantity = int(product.AvailabilityOfPieces)
+		productInOrder.Price = product.Price
+
+		productsInOrder = append(productsInOrder, productInOrder)
 	}
 
 	if len(problemProducts) > 0 {
@@ -94,6 +107,16 @@ func CreateOrder(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		}
 		json.NewEncoder(w).Encode(problemProductsMsg)
 		return
+	}
+
+	totalPrice := 0.0
+	for _, p := range productsInOrder {
+		for _, product := range order.OrderItems {
+			if int(p.Id) == int(product.ProductId) {
+				totalPrice += (p.Price * float64(product.Quantity))
+				continue
+			}
+		}
 	}
 
 	tx, err := db.BeginTx(ctx, nil)
@@ -106,7 +129,6 @@ func CreateOrder(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	}()
 
 	var newOrderId models.NewOrderId
-	totalPrice := 0.0
 
 	err = tx.QueryRowContext(ctx, queryOrder,
 		order.UserId,
@@ -121,49 +143,6 @@ func CreateOrder(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		return
 	}
 
-	for _, item := range order.OrderItems {
-		res, err := tx.ExecContext(ctx, `
-			UPDATE products
-			SET availability_of_pieces = availability_of_pieces - $1
-			WHERE id = $2 AND availability_of_pieces >= $1
-		`, item.Quantity, item.ProductId)
-
-		if err != nil {
-			http.Error(w, "Stock update failed", http.StatusInternalServerError)
-			return
-		}
-
-		rows, _ := res.RowsAffected()
-		if rows == 0 {
-			http.Error(w, "Not enough stock", http.StatusBadRequest)
-			return
-		}
-
-		var price float64
-		err = tx.QueryRowContext(ctx, `
-			SELECT price FROM products WHERE id = $1
-		`, item.ProductId).Scan(&price)
-
-		if err != nil {
-			http.Error(w, "Product not found", http.StatusBadRequest)
-			return
-		}
-
-		_, err = tx.ExecContext(ctx, queryOrderItems,
-			newOrderId.Id,
-			item.ProductId,
-			item.Quantity,
-			price,
-		)
-
-		if err != nil {
-			http.Error(w, "Error creating order_items", http.StatusInternalServerError)
-			return
-		}
-
-		totalPrice += price * float64(item.Quantity)
-	}
-
 	_, err = tx.ExecContext(ctx, `
 		UPDATE orders SET total_price = $1 WHERE id = $2
 	`, totalPrice, newOrderId.Id)
@@ -173,12 +152,29 @@ func CreateOrder(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		return
 	}
 
-	var query string = `SELECT orders.id as order_id, user_id, email, phone, status, total_price, created_at, order_items.id AS order_item_id, 
-							product_id, quantity, order_items.price, product_name, category_id, category_name, image_url
-							FROM orders 
-							JOIN order_items ON orders.id = order_items.order_id
-							JOIN products ON order_items.product_id = products.id
-							JOIN categories ON products.category_id = categories.id`
+	for _, item := range order.OrderItems {
+		for _, p := range productsInOrder {
+			if item.ProductId == p.Id {
+				price := p.Price * float64(item.Quantity)
+				_, err = tx.ExecContext(ctx, queryOrderItems,
+					newOrderId.Id,
+					item.ProductId,
+					item.Quantity,
+					price,
+				)
+
+				if err != nil {
+					http.Error(w, "Error creating order_items", http.StatusInternalServerError)
+					return
+				}
+			}
+		}
+	}
+
+	var query string = `SELECT orders.id as order_id, user_id, email, phone, status, total_price, created_at, order_items.id AS order_item_id,
+							product_id, quantity, price
+							FROM orders
+							JOIN order_items ON orders.id = order_items.order_id`
 
 	var emailInOrder = order.Email
 	var phoneInOrder = order.Phone
@@ -195,13 +191,24 @@ func CreateOrder(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		for rows.Next() {
 			var item models.Products
 			err := rows.Scan(&fullOrder.OrderId, &fullOrder.UserId, &fullOrder.Email, &fullOrder.Phone, &fullOrder.Status,
-				&fullOrder.TotalPrice, &item.OrderItemId, &item.ProductId, &item.Quantity, &item.Price, &item.ProductName, &item.CategoryId, &item.CategoryName, &item.ImageUrl)
+				&fullOrder.TotalPrice, &item.OrderItemId, &item.ProductId, &item.Quantity, &item.Price)
 
 			if err != nil {
 				http.Error(w, "Error reading row", http.StatusInternalServerError)
 				return
 			}
 			products = append(products, item)
+		}
+
+		for i := range products {
+			for _, p := range productsInOrder {
+				if products[i].ProductId == p.Id {
+					products[i].CategoryId = p.CategoryId
+					products[i].CategoryName = p.CategoryName
+					products[i].ImageUrl = p.ImageUrl
+					products[i].ProductName = p.ProductName
+				}
+			}
 		}
 	}
 
@@ -216,7 +223,7 @@ func CreateOrder(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		for rows.Next() {
 			var item models.Products
 			err := rows.Scan(&fullOrder.OrderId, &fullOrder.UserId, &fullOrder.Email, &fullOrder.Phone, &fullOrder.Status,
-				&fullOrder.TotalPrice, &fullOrder.CreatedAt, &item.OrderItemId, &item.ProductId, &item.Quantity, &item.Price, &item.ProductName, &item.CategoryId, &item.CategoryName, &item.ImageUrl)
+				&fullOrder.TotalPrice, &fullOrder.CreatedAt, &item.OrderItemId, &item.ProductId, &item.Quantity, &item.Price)
 
 			if err != nil {
 				http.Error(w, "Error reading row", http.StatusInternalServerError)
@@ -224,12 +231,47 @@ func CreateOrder(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 			}
 			products = append(products, item)
 		}
+
+		for i := range products {
+			for _, p := range productsInOrder {
+				if products[i].ProductId == p.Id {
+					products[i].CategoryId = p.CategoryId
+					products[i].CategoryName = p.CategoryName
+					products[i].ImageUrl = p.ImageUrl
+					products[i].ProductName = p.ProductName
+				}
+			}
+		}
 	}
 
 	fullOrder.Products = products
 
 	if err := tx.Commit(); err != nil {
 		http.Error(w, "Commit failed", http.StatusInternalServerError)
+		return
+	}
+
+	grpcItems := make([]*product.UpdateProductQuantity, 0, len(productsFromOrder))
+
+	for _, p := range productsFromOrder {
+		grpcItems = append(grpcItems, &product.UpdateProductQuantity{
+			ProductId: int64(p.ProductId),
+			Quantity:  int64(p.Quantity),
+		})
+	}
+	response, err := client.UpdateProductQuantityByIds(ctx, &product.UpdateProductQuantityRequest{
+		Items: grpcItems,
+	})
+
+	if err != nil {
+		markOrderFailed(ctx, db, newOrderId.Id)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if !response.Success {
+		markOrderFailed(ctx, db, newOrderId.Id)
+		http.Error(w, response.Message, http.StatusInternalServerError)
 		return
 	}
 

@@ -66,3 +66,23 @@ type ProductsCheck struct {
 	ProductName          string  `json:"product_name"`
 	ImageUrl             *string `json:"image_url"`
 }
+
+type UpdateProductForGRPC struct {
+	ProductId int64 `json:"product_id"`
+	Quantity  int64 `json:"quantity"`
+}
+
+type MessageUpdatedQuantityProducts struct {
+	Success bool
+	Message string
+}
+
+type ProductsForOrder struct {
+	Id           int     `json:"product_id"`
+	Quantity     int     `json:"quantity"`
+	Price        float64 `json:"price"`
+	ProductName  string  `json:"product_name"`
+	CategoryId   int     `json:"category_id"`
+	CategoryName string  `json:"category_name"`
+	ImageUrl     *string `json:"image_url"`
+}

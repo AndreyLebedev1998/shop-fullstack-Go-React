@@ -4,14 +4,19 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
+	"net"
 	"net/http"
 	"os"
 	"products-microservice/cors"
 	"products-microservice/endpoints/categories"
 	"products-microservice/endpoints/products"
+	grpc_package "products-microservice/gRPC"
 	"time"
 
+	product "github.com/AndreyLebedev1998/shop-gRPC-product"
 	httpSwagger "github.com/swaggo/http-swagger"
+	"google.golang.org/grpc"
 
 	"github.com/redis/go-redis/v9"
 
@@ -27,18 +32,10 @@ import (
 // @BasePath /
 
 func main() {
-	host := os.Getenv("DB_HOST")
-	user := os.Getenv("DB_USER")
-	password := os.Getenv("DB_PASSWORD")
-	dbname := os.Getenv("DB_NAME")
+	connStr := os.Getenv("DB_CONN")
 	var db *sql.DB
 
-	psqlInfo := fmt.Sprintf(
-		"host=%s user=%s password=%s dbname=%s sslmode=disable",
-		host, user, password, dbname,
-	)
-
-	db, err := sql.Open("postgres", psqlInfo)
+	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		panic(err)
 	}
@@ -68,6 +65,25 @@ func main() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("🔥 Работает! Сервер перезапустился!"))
 	})
+
+	lis, err := net.Listen("tcp", ":50051")
+	if err != nil {
+		panic(err)
+	}
+
+	grpcServer := grpc.NewServer()
+
+	product.RegisterProductsServiceServer(grpcServer, &grpc_package.Server{
+		DB:  db,
+		RDB: rdb,
+	})
+
+	go func() {
+		fmt.Println("gRPC server started on :50051")
+		if err := grpcServer.Serve(lis); err != nil {
+			log.Fatal(err)
+		}
+	}()
 
 	mux := http.NewServeMux()
 

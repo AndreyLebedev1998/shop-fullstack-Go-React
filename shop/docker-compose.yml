@@ -3,18 +3,35 @@ services:
     build: ./frontend
     restart: always
     ports:
-      - '3000:3000'
+      - "3000:3000"
     volumes:
       - /frontend/node_modules
       - ./frontend:/frontend
 
+  # ---------------- PRODUCTS DB ----------------
+  products-db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: mypasswordProducts
+      POSTGRES_DB: products_db
+    volumes:
+      - products_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ---------------- PRODUCTS SERVICE ----------------
   products-microservice:
     build: ./backend/products-microservice
     restart: always
     ports:
       - "8090:8080"
     depends_on:
-      postgres:
+      products-db:
         condition: service_healthy
       redis:
         condition: service_started
@@ -26,147 +43,136 @@ services:
       timeout: 3s
       retries: 10
     environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USER: postgres
-      DB_PASSWORD: mypassword
-      DB_NAME: shop-database
       JWT_SECRET: 8fhj3k4j5h2k3j4h5k6j7h8k9j2h3j4k5h6j7h8k9j0k1j2h3g4f5d6s7a8s9d0f
-      DB_CONN: "user=postgres password=mypassword dbname=shop-database host=postgres sslmode=disable"
-      GOOSE_MIGRATION_DIR: "./migrations"
+      DB_CONN: "user=postgres password=mypasswordProducts dbname=products_db host=products-db sslmode=disable"
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: myredispassword
 
+  # ---------------- PRODUCTS MIGRATION ----------------
+  products-migration:
+    build: ./backend/products-migration-service
+    restart: "no"
+    depends_on:
+      products-db:
+        condition: service_healthy
+    environment:
+      DB_CONN: "user=postgres password=mypasswordProducts dbname=products_db host=products-db sslmode=disable"
+
+  # ---------------- ORDERS DB ----------------
+  orders-db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: mypasswordOrders
+      POSTGRES_DB: orders_db
+    volumes:
+      - orders_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ---------------- ORDERS SERVICE ----------------
   orders-microservice:
     build: ./backend/orders-microservice
     restart: always
     ports:
       - "8091:8080"
     depends_on:
-      postgres:
+      orders-db:
         condition: service_healthy
       redis:
         condition: service_started
     volumes:
       - ./backend/orders-microservice:/orders-microservice
     environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USER: postgres
-      DB_PASSWORD: mypassword
-      DB_NAME: shop-database
       JWT_SECRET: 8fhj3k4j5h2k3j4h5k6j7h8k9j2h3j4k5h6j7h8k9j0k1j2h3g4f5d6s7a8s9d0f
-      DB_CONN: "user=postgres password=mypassword dbname=shop-database host=postgres sslmode=disable"
-      GOOSE_MIGRATION_DIR: "./migrations"
+      DB_CONN: "user=postgres password=mypasswordOrders dbname=orders_db host=orders-db sslmode=disable"
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: myredispassword
 
-  migration-service:
-    build: ./backend/migration-service
+  # ---------------- ORDERS MIGRATION ----------------
+  orders-migration:
+    build: ./backend/orders-migration-service
+    restart: "no"
     depends_on:
-      postgres:
+      orders-db:
         condition: service_healthy
     environment:
-      DB_CONN: "user=postgres password=mypassword dbname=shop-database host=postgres sslmode=disable"
+      DB_CONN: "user=postgres password=mypasswordOrders dbname=orders_db host=orders-db sslmode=disable"
 
+  # ---------------- ADMIN SERVICE ----------------
   admin-microservice:
     build: ./backend/admin-microservice
     restart: always
     ports:
       - "8092:8080"
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_started
-    volumes:
-      - ./backend/admin-microservice:/admin-microservice
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
     environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USER: postgres
-      DB_PASSWORD: mypassword
-      DB_NAME: shop-database
       JWT_SECRET: 8fhj3k4j5h2k3j4h5k6j7h8k9j2h3j4k5h6j7h8k9j0k1j2h3g4f5d6s7a8s9d0f
-      DB_CONN: "user=postgres password=mypassword dbname=shop-database host=postgres sslmode=disable"
-      GOOSE_MIGRATION_DIR: "./migrations"
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: myredispassword
+      PRODUCTS_SERVICE_URL: http://products-microservice:8080
+      ORDERS_SERVICE_URL: http://orders-microservice:8080
+    volumes:
+      - ./backend/admin-microservice:/admin-microservice
 
+  # ---------------- REDIS ----------------
   redis:
     image: redis:7-alpine
-    container_name: redis
     restart: always
     command: redis-server --requirepass myredispassword
 
-  postgres:
-    image: postgres:15-alpine
-    container_name: pg_db
-    restart: always
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: mypassword
-      POSTGRES_DB: shop-database
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
+  # ---------------- PGADMIN ----------------
   pgadmin:
     image: dpage/pgadmin4
     restart: always
     ports:
-      - "6080:80"
+    - "6080:80"
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@example.com
       PGADMIN_DEFAULT_PASSWORD: admin
       PGADMIN_CONFIG_SERVER_MODE: "False"
-    depends_on:
-      - postgres
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+      PGPASSFILE: /pgpass
     volumes:
       - ./pgadmin/servers.json:/pgadmin4/servers.json
       - ./pgadmin/pgpass:/pgpass
     user: "root"
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.4.0
-    restart: always
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-    ports:
-      - "2181:2181"
 
-  kafka:
-    image: confluentinc/cp-kafka:7.4.0
-    restart: always
-    depends_on:
-      zookeeper:
-        condition: service_started
-    ports:
-      - "9092:9092"
-      - "29092:29092"
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-    healthcheck:
-      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:29092 --list || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+  #zookeeper:
+    #image: confluentinc/cp-zookeeper:7.4.0
+    #restart: always
+    #environment:
+      #ZOOKEEPER_CLIENT_PORT: 2181
+      #ZOOKEEPER_TICK_TIME: 2000
+    #ports:
+      #- "2181:2181"
+
+  #kafka:
+    #image: confluentinc/cp-kafka:7.4.0
+    #restart: always
+    #depends_on:
+      #zookeeper:
+        #condition: service_started
+    #ports:
+      #- "9092:9092"
+      #- "29092:29092"
+    #environment:
+      #KAFKA_BROKER_ID: 1
+      #KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      #KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      #KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      #KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      #KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
 volumes:
-  postgres_data:
+  products_data:
+  orders_data:

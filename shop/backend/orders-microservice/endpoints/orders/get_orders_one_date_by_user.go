@@ -3,7 +3,6 @@ package orders
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"orders-microservice/helpers"
 	"orders-microservice/models"
@@ -27,7 +26,6 @@ func GetOrdersOneDateByUser(w http.ResponseWriter, r *http.Request, db *sql.DB) 
 		http.Error(w, "date can't be empty", http.StatusBadRequest)
 		return
 	}
-	fmt.Println(dateParam)
 	_, err := time.Parse("2006-01-02", dateParam)
 	if err != nil {
 		http.Error(w, "invalid date format, use YYYY-MM-DD", http.StatusBadRequest)

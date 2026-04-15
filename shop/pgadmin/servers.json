@@ -1,13 +1,23 @@
 {
   "Servers": {
     "1": {
-      "Name": "PostgreSQL",
+      "Name": "products_db",
       "Group": "Servers",
-      "Host": "postgres",
+      "Host": "products-db",
       "Port": 5432,
-      "MaintenanceDB": "shop-database",
+      "MaintenanceDB": "products_db",
       "Username": "postgres",
-      "Password": "mypassword",
+      "Password": "mypasswordProducts",
+      "SSLMode": "prefer"
+    },
+    "2": {
+      "Name": "orders_db",
+      "Group": "Servers",
+      "Host": "orders-db",
+      "Port": 5432,
+      "MaintenanceDB": "orders_db",
+      "Username": "postgres",
+      "Password": "mypasswordOrders",
       "SSLMode": "prefer"
     }
   }
