@@ -6,6 +6,8 @@ github.com/AndreyLebedev1998/shop-gRPC-product v1.2.0 h1:mEpketdMsXCVtzQuTaU5ViN
 github.com/AndreyLebedev1998/shop-gRPC-product v1.2.0/go.mod h1:Chbhc2TvcoViIKU8La01oGbQkzPyLJnY6rtm97A2QiU=
 github.com/AndreyLebedev1998/shop-gRPC-product v1.2.1 h1:C0RO9jp6xJNjUjJUfzGgJ8fGPUUJG4Bjh/GFE5L7pm0=
 github.com/AndreyLebedev1998/shop-gRPC-product v1.2.1/go.mod h1:Chbhc2TvcoViIKU8La01oGbQkzPyLJnY6rtm97A2QiU=
+github.com/AndreyLebedev1998/shop-gRPC-product v1.3.0 h1:uVVAXQYGvpQAj2Ri3olNiAxzqDjPb0v36r09IPeIqCc=
+github.com/AndreyLebedev1998/shop-gRPC-product v1.3.0/go.mod h1:Chbhc2TvcoViIKU8La01oGbQkzPyLJnY6rtm97A2QiU=
 github.com/KyleBanks/depth v1.2.1 h1:5h8fQADFrWtarTdtDudMmGsC7GPbOAu6RVB3ffsVFHc=
 github.com/KyleBanks/depth v1.2.1/go.mod h1:jzSb9d0L43HxTQfT+oSA1EEp2q+ne2uh6XgeJcm8brE=
 github.com/bsm/ginkgo/v2 v2.12.0 h1:Ny8MWAHyOepLGlLKYmXG4IEkioBysk6GpaRTLC8zwWs=

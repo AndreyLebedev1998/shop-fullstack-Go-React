@@ -86,3 +86,14 @@ type ProductsForOrder struct {
 	CategoryName string  `json:"category_name"`
 	ImageUrl     *string `json:"image_url"`
 }
+
+type OrderStatus struct {
+	Id     int64
+	Status string
+}
+
+type OrderStatusResponse struct {
+	Response bool
+	Status   string
+	Id       int64
+}

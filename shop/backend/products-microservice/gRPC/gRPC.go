@@ -3,6 +3,7 @@ package grpc_package
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	grpcFunctionsQuery "products-microservice/gRPC-functions-query"
 	"products-microservice/helpers"
@@ -20,7 +21,6 @@ type Server struct {
 }
 
 func (s *Server) GetProductsByIds(ctx context.Context, products_ids *product.GetProductsRequest) (*product.GetProductsResponse, error) {
-	fmt.Println(products_ids)
 	if len(products_ids.ProductIds) == 0 {
 		return nil, fmt.Errorf("product_ids is empty")
 	}
@@ -60,5 +60,24 @@ func (s *Server) UpdateProductQuantityByIds(ctx context.Context, products *produ
 	return &product.UpdateProductQuantityResponse{
 		Success: message.Success,
 		Message: message.Message,
+	}, nil
+}
+
+func (s *Server) CreateProduct(ctx context.Context, newProduct *product.NewProduct) (*product.ReturnNewProduct, error) {
+	query := `INSERT INTO products (product_name, price, category_id, image_url, availability_of_pieces) VALUES ($1, $2, $3, $4, $5) RETURNING id`
+	var id int
+
+	err := s.DB.QueryRow(query, newProduct.ProductName, newProduct.Price, newProduct.CategoryId, newProduct.ImageUrl, newProduct.AvailabilityOfPieces).Scan(&id)
+	if err != nil {
+		return nil, errors.New("error INSERT INTO products")
+	}
+
+	return &product.ReturnNewProduct{
+		Id:                   int64(id),
+		ProductName:          newProduct.ProductName,
+		Price:                newProduct.Price,
+		CategoryId:           newProduct.CategoryId,
+		ImageUrl:             newProduct.ImageUrl,
+		AvailabilityOfPieces: newProduct.AvailabilityOfPieces,
 	}, nil
 }

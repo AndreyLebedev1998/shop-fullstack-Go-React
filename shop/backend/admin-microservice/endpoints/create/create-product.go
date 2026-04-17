@@ -3,7 +3,6 @@ package create
 import (
 	"admin-microservice/models"
 	"crypto/rand"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,23 +11,21 @@ import (
 	"path/filepath"
 	"strconv"
 	"time"
+
+	product "github.com/AndreyLebedev1998/shop-gRPC-product"
 )
 
-func CreateProduct(w http.ResponseWriter, r *http.Request, sql *sql.DB) {
+func CreateProduct(w http.ResponseWriter, r *http.Request, client product.ProductsServiceClient) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-
-	var ctx = r.Context()
 
 	err := r.ParseMultipartForm(10 << 20)
 	if err != nil {
 		http.Error(w, "Failed to parse form", http.StatusBadRequest)
 		return
 	}
-
-	fmt.Println("FORM:", r.Form)
 
 	priceStr := r.FormValue("price")
 	price, err := strconv.ParseFloat(priceStr, 64)
@@ -50,12 +47,22 @@ func CreateProduct(w http.ResponseWriter, r *http.Request, sql *sql.DB) {
 		return
 	}
 
-	var newProduct models.NewProduct = models.NewProduct{
-		ProductName: nameStr,
-		Price:       price,
-		CategoryId:  categoryId,
-		ImageUrl:    nil,
+	quantityStr := r.FormValue("availability_of_pieces")
+	quantity, err := strconv.Atoi(quantityStr)
+	if err != nil || quantity < 0 {
+		http.Error(w, "Invalid availability_of_pieces", http.StatusBadRequest)
+		return
 	}
+
+	var newProduct models.NewProduct = models.NewProduct{
+		ProductName:          nameStr,
+		Price:                price,
+		CategoryId:           categoryId,
+		ImageUrl:             nil,
+		AvailabilityOfPieces: quantity,
+	}
+
+	var savedFilePath string
 
 	file, header, err := r.FormFile("image_url")
 	if err != nil {
@@ -68,6 +75,7 @@ func CreateProduct(w http.ResponseWriter, r *http.Request, sql *sql.DB) {
 
 		uploadDir := "./uploads-products-images"
 		if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
+			fmt.Println(123)
 			http.Error(w, "Server error", http.StatusInternalServerError)
 			return
 		}
@@ -75,6 +83,7 @@ func CreateProduct(w http.ResponseWriter, r *http.Request, sql *sql.DB) {
 		ext := filepath.Ext(header.Filename)
 		safeName := fmt.Sprintf("%d_%s", time.Now().UnixNano(), rand.Text())
 		destPath := filepath.Join(uploadDir, safeName+ext)
+		savedFilePath = destPath
 
 		dst, err := os.Create(destPath)
 		if err != nil {
@@ -93,24 +102,24 @@ func CreateProduct(w http.ResponseWriter, r *http.Request, sql *sql.DB) {
 		newProduct.ImageUrl = &imageURL
 	}
 
-	query := `INSERT INTO products (product_name, category_id, price, image_url)
-			  VALUES ($1, $2, $3, $4) RETURNING id`
+	var newProductGrpc = product.NewProduct{
+		ProductName:          newProduct.ProductName,
+		Price:                newProduct.Price,
+		CategoryId:           int64(newProduct.CategoryId),
+		ImageUrl:             *newProduct.ImageUrl,
+		AvailabilityOfPieces: int64(newProduct.AvailabilityOfPieces),
+	}
+	ctx := r.Context()
 
-	var productId int
-	err = sql.QueryRowContext(ctx, query, newProduct.ProductName, newProduct.CategoryId, newProduct.Price, newProduct.ImageUrl).Scan(&productId)
-
+	resp, err := client.CreateProduct(ctx, &newProductGrpc)
 	if err != nil {
-		http.Error(w, "Error saving product", http.StatusInternalServerError)
+		http.Error(w, "server error", http.StatusInternalServerError)
+		if savedFilePath != "" {
+			_ = os.Remove(savedFilePath)
+		}
 		return
 	}
 
-	var product = models.Product{
-		Id:          productId,
-		ProductName: newProduct.ProductName,
-		CategoryId:  newProduct.CategoryId,
-		Price:       newProduct.Price,
-		ImageUrl:    newProduct.ImageUrl,
-	}
-
-	json.NewEncoder(w).Encode(product)
+	w.Header().Set("Content-Type", "application-json")
+	json.NewEncoder(w).Encode(resp)
 }

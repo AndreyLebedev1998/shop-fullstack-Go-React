@@ -30,8 +30,6 @@ func GetProductByIds(db *sql.DB, products_ids []int) ([]models.ProductWithCatego
 		prodcuts = append(prodcuts, product)
 	}
 
-	fmt.Println(prodcuts)
-
 	return prodcuts, nil
 }
 

@@ -5,12 +5,15 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"orders-microservice/cors"
 	"orders-microservice/endpoints/orders"
+	grpc_package "orders-microservice/gRPC"
 	"os"
 	"time"
 
+	order "github.com/AndreyLebedev1998/shop-gRPC-orders"
 	product "github.com/AndreyLebedev1998/shop-gRPC-product"
 	"github.com/redis/go-redis/v9"
 	"google.golang.org/grpc"
@@ -81,6 +84,25 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 
 	defer cancel()
+
+	lis, err := net.Listen("tcp", ":50051")
+	if err != nil {
+		panic(err)
+	}
+
+	grpcServer := grpc.NewServer()
+
+	order.RegisterOrderServiceServer(grpcServer, &grpc_package.Server{
+		DB:  db,
+		RDB: rdb,
+	})
+
+	go func() {
+		fmt.Println("gRPC server started on :50051")
+		if err := grpcServer.Serve(lis); err != nil {
+			log.Fatal(err)
+		}
+	}()
 
 	mux.Handle("/create-order", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		orders.CreateOrder(w, r, db, client)

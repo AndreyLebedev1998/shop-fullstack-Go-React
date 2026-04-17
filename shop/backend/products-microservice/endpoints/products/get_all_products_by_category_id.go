@@ -68,11 +68,6 @@ func GetAllProductsByCategoryId(w http.ResponseWriter, r *http.Request, db *sql.
 			return
 		}
 
-		if product.ImageUrl != nil {
-			url := "http://localhost:8092" + *product.ImageUrl
-			product.ImageUrl = &url
-		}
-
 		products = append(products, product)
 	}
 

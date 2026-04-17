@@ -8,7 +8,6 @@ services:
       - /frontend/node_modules
       - ./frontend:/frontend
 
-  # ---------------- PRODUCTS DB ----------------
   products-db:
     image: postgres:15-alpine
     restart: always
@@ -24,7 +23,6 @@ services:
       timeout: 5s
       retries: 10
 
-  # ---------------- PRODUCTS SERVICE ----------------
   products-microservice:
     build: ./backend/products-microservice
     restart: always
@@ -49,7 +47,6 @@ services:
       REDIS_PORT: 6379
       REDIS_PASSWORD: myredispassword
 
-  # ---------------- PRODUCTS MIGRATION ----------------
   products-migration:
     build: ./backend/products-migration-service
     restart: "no"
@@ -59,7 +56,6 @@ services:
     environment:
       DB_CONN: "user=postgres password=mypasswordProducts dbname=products_db host=products-db sslmode=disable"
 
-  # ---------------- ORDERS DB ----------------
   orders-db:
     image: postgres:15-alpine
     restart: always
@@ -75,7 +71,6 @@ services:
       timeout: 5s
       retries: 10
 
-  # ---------------- ORDERS SERVICE ----------------
   orders-microservice:
     build: ./backend/orders-microservice
     restart: always
@@ -95,7 +90,6 @@ services:
       REDIS_PORT: 6379
       REDIS_PASSWORD: myredispassword
 
-  # ---------------- ORDERS MIGRATION ----------------
   orders-migration:
     build: ./backend/orders-migration-service
     restart: "no"
@@ -105,7 +99,6 @@ services:
     environment:
       DB_CONN: "user=postgres password=mypasswordOrders dbname=orders_db host=orders-db sslmode=disable"
 
-  # ---------------- ADMIN SERVICE ----------------
   admin-microservice:
     build: ./backend/admin-microservice
     restart: always
@@ -124,13 +117,11 @@ services:
     volumes:
       - ./backend/admin-microservice:/admin-microservice
 
-  # ---------------- REDIS ----------------
   redis:
     image: redis:7-alpine
     restart: always
     command: redis-server --requirepass myredispassword
 
-  # ---------------- PGADMIN ----------------
   pgadmin:
     image: dpage/pgadmin4
     restart: always
