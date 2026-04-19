@@ -8,6 +8,16 @@ github.com/AndreyLebedev1998/shop-gRPC-product v1.2.1 h1:C0RO9jp6xJNjUjJUfzGgJ8f
 github.com/AndreyLebedev1998/shop-gRPC-product v1.2.1/go.mod h1:Chbhc2TvcoViIKU8La01oGbQkzPyLJnY6rtm97A2QiU=
 github.com/AndreyLebedev1998/shop-gRPC-product v1.3.0 h1:uVVAXQYGvpQAj2Ri3olNiAxzqDjPb0v36r09IPeIqCc=
 github.com/AndreyLebedev1998/shop-gRPC-product v1.3.0/go.mod h1:Chbhc2TvcoViIKU8La01oGbQkzPyLJnY6rtm97A2QiU=
+github.com/AndreyLebedev1998/shop-gRPC-product v1.3.1 h1:kbelM9Gij9QfcQdlb+gutqaf9LRnX8rXhIEWycnXAnw=
+github.com/AndreyLebedev1998/shop-gRPC-product v1.3.1/go.mod h1:Chbhc2TvcoViIKU8La01oGbQkzPyLJnY6rtm97A2QiU=
+github.com/AndreyLebedev1998/shop-gRPC-product v1.3.2 h1:EAF1UQR/M+8ZjrL/ihQDXyBUMjT4kgSbqsDB+lUXajI=
+github.com/AndreyLebedev1998/shop-gRPC-product v1.3.2/go.mod h1:Chbhc2TvcoViIKU8La01oGbQkzPyLJnY6rtm97A2QiU=
+github.com/AndreyLebedev1998/shop-gRPC-product v1.3.3 h1:P32i+eJg9ANnJ1/knXFLeFVjUhZE0MU2ydBpuq5gxJg=
+github.com/AndreyLebedev1998/shop-gRPC-product v1.3.3/go.mod h1:Chbhc2TvcoViIKU8La01oGbQkzPyLJnY6rtm97A2QiU=
+github.com/AndreyLebedev1998/shop-gRPC-product v1.3.4 h1:RcjamnYROjWjP6SePTNyzP7PV+VPn2vERkhrLGC1vX0=
+github.com/AndreyLebedev1998/shop-gRPC-product v1.3.4/go.mod h1:Chbhc2TvcoViIKU8La01oGbQkzPyLJnY6rtm97A2QiU=
+github.com/AndreyLebedev1998/shop-gRPC-product v1.3.5 h1:oyZL3Qp2tPChJ1DTFUbxz+SFNvB0UHTWhp8PPqV3dgE=
+github.com/AndreyLebedev1998/shop-gRPC-product v1.3.5/go.mod h1:Chbhc2TvcoViIKU8La01oGbQkzPyLJnY6rtm97A2QiU=
 github.com/KyleBanks/depth v1.2.1 h1:5h8fQADFrWtarTdtDudMmGsC7GPbOAu6RVB3ffsVFHc=
 github.com/KyleBanks/depth v1.2.1/go.mod h1:jzSb9d0L43HxTQfT+oSA1EEp2q+ne2uh6XgeJcm8brE=
 github.com/bsm/ginkgo/v2 v2.12.0 h1:Ny8MWAHyOepLGlLKYmXG4IEkioBysk6GpaRTLC8zwWs=

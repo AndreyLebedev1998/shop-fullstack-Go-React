@@ -171,7 +171,7 @@ func CreateOrder(w http.ResponseWriter, r *http.Request, db *sql.DB, client prod
 		}
 	}
 
-	var query string = `SELECT orders.id as order_id, user_id, email, phone, status, total_price, created_at, order_items.id AS order_item_id,
+	var query string = `SELECT orders.id as order_id, user_id, email, phone, status, total_price, created_at,
 							product_id, quantity, price
 							FROM orders
 							JOIN order_items ON orders.id = order_items.order_id`
@@ -191,7 +191,7 @@ func CreateOrder(w http.ResponseWriter, r *http.Request, db *sql.DB, client prod
 		for rows.Next() {
 			var item models.Products
 			err := rows.Scan(&fullOrder.OrderId, &fullOrder.UserId, &fullOrder.Email, &fullOrder.Phone, &fullOrder.Status,
-				&fullOrder.TotalPrice, &item.OrderItemId, &item.ProductId, &item.Quantity, &item.Price)
+				&fullOrder.TotalPrice, &fullOrder.CreatedAt, &item.ProductId, &item.Quantity, &item.Price)
 
 			if err != nil {
 				http.Error(w, "Error reading row", http.StatusInternalServerError)
@@ -223,7 +223,7 @@ func CreateOrder(w http.ResponseWriter, r *http.Request, db *sql.DB, client prod
 		for rows.Next() {
 			var item models.Products
 			err := rows.Scan(&fullOrder.OrderId, &fullOrder.UserId, &fullOrder.Email, &fullOrder.Phone, &fullOrder.Status,
-				&fullOrder.TotalPrice, &fullOrder.CreatedAt, &item.OrderItemId, &item.ProductId, &item.Quantity, &item.Price)
+				&fullOrder.TotalPrice, &fullOrder.CreatedAt, &item.ProductId, &item.Quantity, &item.Price)
 
 			if err != nil {
 				http.Error(w, "Error reading row", http.StatusInternalServerError)
@@ -260,7 +260,9 @@ func CreateOrder(w http.ResponseWriter, r *http.Request, db *sql.DB, client prod
 		})
 	}
 	response, err := client.UpdateProductQuantityByIds(ctx, &product.UpdateProductQuantityRequest{
-		Items: grpcItems,
+		NewItems: grpcItems,
+		OldItems: grpcItems,
+		IsCreate: true,
 	})
 
 	if err != nil {

@@ -36,7 +36,7 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println("✅ Подключено к PostgreSQL orders-microservice")
+	fmt.Println("✅ Подключено к PostgreSQL orders-microservice 12")
 
 	var ctx = context.Background()
 
@@ -109,7 +109,7 @@ func main() {
 	})))
 
 	mux.Handle("/change-order", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		orders.ChangeOrder(w, r, db)
+		orders.ChangeOrder(w, r, db, client)
 	})))
 
 	mux.Handle("/get-orders-by-parametr", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

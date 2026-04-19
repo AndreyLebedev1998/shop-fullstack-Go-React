@@ -36,14 +36,13 @@ type FullOrder struct {
 	Email      *string    `json:"email"`
 	Phone      *string    `json:"phone"`
 	Status     string     `json:"status"`
-	TotalPrice string     `json:"total_price"`
+	TotalPrice float64    `json:"total_price"`
 	CreatedAt  string     `json:"created_at"`
 	UpdatedAt  string     `json:"updated_at"`
 	Products   []Products `json:"products"`
 }
 
 type Products struct {
-	OrderItemId  string  `json:"order_item_id"`
 	ProductId    int     `json:"product_id"`
 	Quantity     int     `json:"quantity"`
 	Price        float64 `json:"price"`

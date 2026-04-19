@@ -20,7 +20,7 @@ func ForRowsAfterQuery(rows *sql.Rows, ordersMap map[int]*models.FullOrder) erro
 		var product models.Products
 		if err := rows.Scan(&fullOrder.OrderId, &fullOrder.UserId, &fullOrder.Email, &fullOrder.Phone,
 			&fullOrder.Status, &fullOrder.TotalPrice, &fullOrder.CreatedAt,
-			&product.OrderItemId, &product.ProductId, &product.Quantity, &product.Price,
+			&product.ProductId, &product.Quantity, &product.Price,
 			&product.ProductName, &product.CategoryId, &product.CategoryName, &product.ImageUrl); err != nil {
 			return fmt.Errorf("error scanning row: %w", err)
 		}

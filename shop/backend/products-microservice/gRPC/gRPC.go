@@ -36,20 +36,28 @@ func (s *Server) GetProductsByIds(ctx context.Context, products_ids *product.Get
 }
 
 func (s *Server) UpdateProductQuantityByIds(ctx context.Context, products *product.UpdateProductQuantityRequest) (*product.UpdateProductQuantityResponse, error) {
-	if len(products.Items) == 0 {
+	if len(products.NewItems) == 0 || len(products.OldItems) == 0 {
 		return nil, fmt.Errorf("products is empty")
 	}
 
-	internalProducts := make([]models.UpdateProductForGRPC, 0, len(products.Items))
+	newItems := make([]models.UpdateProductForGRPC, 0, len(products.NewItems))
+	oldItems := make([]models.UpdateProductForGRPC, 0, len(products.OldItems))
 
-	for _, p := range products.Items {
-		internalProducts = append(internalProducts, models.UpdateProductForGRPC{
+	for _, p := range products.NewItems {
+		newItems = append(newItems, models.UpdateProductForGRPC{
 			ProductId: p.ProductId,
 			Quantity:  p.Quantity,
 		})
 	}
 
-	message, err := grpcFunctionsQuery.UpdateProductsQuantityByIds(s.DB, internalProducts)
+	for _, p := range products.OldItems {
+		oldItems = append(oldItems, models.UpdateProductForGRPC{
+			ProductId: p.ProductId,
+			Quantity:  p.Quantity,
+		})
+	}
+
+	message, err := grpcFunctionsQuery.UpdateProductsQuantityByIds(s.DB, newItems, oldItems, products.IsCreate)
 	if err != nil {
 		return &product.UpdateProductQuantityResponse{
 			Success: message.Success,

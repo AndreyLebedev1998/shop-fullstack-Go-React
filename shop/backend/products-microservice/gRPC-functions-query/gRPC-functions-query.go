@@ -33,55 +33,121 @@ func GetProductByIds(db *sql.DB, products_ids []int) ([]models.ProductWithCatego
 	return prodcuts, nil
 }
 
-func UpdateProductsQuantityByIds(db *sql.DB, products []models.UpdateProductForGRPC) (models.MessageUpdatedQuantityProducts, error) {
-	query := "UPDATE products SET availability_of_pieces = availability_of_pieces - $1 WHERE id = $2 AND availability_of_pieces >= $1"
-
+func UpdateProductsQuantityByIds(db *sql.DB, newItems, oldItems []models.UpdateProductForGRPC, isCreate bool) (models.MessageUpdatedQuantityProducts, error) {
+	queryMinus := "UPDATE products SET availability_of_pieces = availability_of_pieces - $1 WHERE id = $2 AND availability_of_pieces >= $1"
+	queryPlus := "UPDATE products SET availability_of_pieces = availability_of_pieces + $1 WHERE id = $2"
 	ctx := context.Background()
-	tx, err := db.BeginTx(ctx, nil)
-	if err != nil {
-		response := models.MessageUpdatedQuantityProducts{
-			Success: false,
-			Message: "transaction error",
+
+	if isCreate {
+		tx, err := db.BeginTx(ctx, nil)
+
+		defer func() {
+			_ = tx.Rollback()
+		}()
+		for _, p := range newItems {
+			res, err := tx.Exec(queryMinus, p.Quantity, p.ProductId)
+			if err != nil {
+				response := models.MessageUpdatedQuantityProducts{
+					Success: false,
+					Message: "Server error",
+				}
+				return response, fmt.Errorf("Server error")
+			}
+
+			rowsUpdated, _ := res.RowsAffected()
+			if rowsUpdated != 1 {
+				response := models.MessageUpdatedQuantityProducts{
+					Success: false,
+					Message: "Updated products quantity error",
+				}
+				return response, fmt.Errorf("Server error")
+			}
 		}
-		return response, fmt.Errorf("Server error")
-	}
 
-	defer func() {
-		_ = tx.Rollback()
-	}()
+		if err = tx.Commit(); err != nil {
+			response := models.MessageUpdatedQuantityProducts{
+				Success: false,
+				Message: "Commit failed",
+			}
+			return response, fmt.Errorf("Server error 6")
+		}
 
-	for _, p := range products {
-		res, err := tx.Exec(query, p.Quantity, p.ProductId)
+		response := models.MessageUpdatedQuantityProducts{
+			Success: true,
+			Message: "Products in the warehouse have been successfully updated.",
+		}
+		return response, nil
+	} else {
+		tx, err := db.BeginTx(ctx, nil)
 		if err != nil {
 			response := models.MessageUpdatedQuantityProducts{
 				Success: false,
-				Message: "Server error",
+				Message: "transaction error",
 			}
-			return response, fmt.Errorf("Server error")
+			return response, fmt.Errorf("Server error 1")
 		}
 
-		rowsUpdated, _ := res.RowsAffected()
-		if rowsUpdated != 1 {
+		defer func() {
+			_ = tx.Rollback()
+		}()
+
+		/* Вернуть старые товары на склад */
+		for _, p := range oldItems {
+			resPlus, err := tx.Exec(queryPlus, p.Quantity, p.ProductId)
+			if err != nil {
+				response := models.MessageUpdatedQuantityProducts{
+					Success: false,
+					Message: "Server error",
+				}
+				return response, fmt.Errorf("Server error 2")
+			}
+
+			rowsUpdatedPlus, _ := resPlus.RowsAffected()
+			if rowsUpdatedPlus != 1 {
+				response := models.MessageUpdatedQuantityProducts{
+					Success: false,
+					Message: "Updated products quantity error",
+				}
+				return response, fmt.Errorf("Server error 3")
+			}
+		}
+
+		/* ------------------------------------------------------------- */
+
+		/* Отнять новое количество товара со склада */
+		for _, p := range newItems {
+			resMinus, err := tx.Exec(queryMinus, p.Quantity, p.ProductId)
+			if err != nil {
+				response := models.MessageUpdatedQuantityProducts{
+					Success: false,
+					Message: "Server error",
+				}
+				return response, fmt.Errorf("Server error 4")
+			}
+
+			rowsUpdatedMinus, _ := resMinus.RowsAffected()
+			if rowsUpdatedMinus != 1 {
+				response := models.MessageUpdatedQuantityProducts{
+					Success: false,
+					Message: "Updated products quantity error",
+				}
+				return response, fmt.Errorf("Server error 5")
+			}
+		}
+
+		response := models.MessageUpdatedQuantityProducts{
+			Success: true,
+			Message: "Products in the warehouse have been successfully updated.",
+		}
+
+		if err := tx.Commit(); err != nil {
 			response := models.MessageUpdatedQuantityProducts{
 				Success: false,
-				Message: "Updated products quantity error",
+				Message: "Commit failed",
 			}
-			return response, fmt.Errorf("Server error")
+			return response, fmt.Errorf("Server error 6")
 		}
-	}
 
-	response := models.MessageUpdatedQuantityProducts{
-		Success: true,
-		Message: "Products in the warehouse have been successfully updated.",
+		return response, nil
 	}
-
-	if err := tx.Commit(); err != nil {
-		response := models.MessageUpdatedQuantityProducts{
-			Success: false,
-			Message: "Commit failed",
-		}
-		return response, fmt.Errorf("Server error")
-	}
-
-	return response, nil
 }
