@@ -44,7 +44,6 @@ func GetAllCategories(w http.ResponseWriter, r *http.Request, db *sql.DB, rdb *r
 		var category models.Category
 		err := rows.Scan(&category.Id, &category.CategoryName)
 		if err != nil {
-			fmt.Println("Error reading line")
 			http.Error(w, "Server error", http.StatusInternalServerError)
 			return
 		}
@@ -53,7 +52,7 @@ func GetAllCategories(w http.ResponseWriter, r *http.Request, db *sql.DB, rdb *r
 	}
 
 	bytes, _ := json.Marshal(categories)
-	rdb.Set(ctx, cacheKey, bytes, 5*time.Second)
+	rdb.Set(ctx, cacheKey, bytes, 5*time.Minute)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(categories)

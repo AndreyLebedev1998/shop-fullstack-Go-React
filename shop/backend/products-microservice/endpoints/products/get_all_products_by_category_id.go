@@ -3,7 +3,6 @@ package products
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"products-microservice/models"
 	"strconv"
@@ -63,7 +62,6 @@ func GetAllProductsByCategoryId(w http.ResponseWriter, r *http.Request, db *sql.
 		err := rows.Scan(&product.Id, &product.ProductName, &product.CategoryId, &product.Price, &product.ImageUrl)
 
 		if err != nil {
-			fmt.Println("Error reading line")
 			http.Error(w, "Server error", http.StatusInternalServerError)
 			return
 		}

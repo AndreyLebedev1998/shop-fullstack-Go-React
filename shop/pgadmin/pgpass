@@ -1,2 +1,3 @@
 products-db:5432:*:postgres:mypasswordProducts
 orders-db:5432:*:postgres:mypasswordOrders
+authorization-db:5432:*:postgres:mypasswordAuthorization

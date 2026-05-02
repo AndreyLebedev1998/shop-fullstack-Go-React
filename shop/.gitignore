@@ -1,1 +1,4 @@
 shop/backend/shop-microservice/tmp/
+# env files
+.env
+.env.*

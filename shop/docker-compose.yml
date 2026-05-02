@@ -41,7 +41,6 @@ services:
       timeout: 3s
       retries: 10
     environment:
-      JWT_SECRET: 8fhj3k4j5h2k3j4h5k6j7h8k9j2h3j4k5h6j7h8k9j0k1j2h3g4f5d6s7a8s9d0f
       DB_CONN: "user=postgres password=mypasswordProducts dbname=products_db host=products-db sslmode=disable"
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -84,7 +83,6 @@ services:
     volumes:
       - ./backend/orders-microservice:/orders-microservice
     environment:
-      JWT_SECRET: 8fhj3k4j5h2k3j4h5k6j7h8k9j2h3j4k5h6j7h8k9j0k1j2h3g4f5d6s7a8s9d0f
       DB_CONN: "user=postgres password=mypasswordOrders dbname=orders_db host=orders-db sslmode=disable"
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -99,6 +97,49 @@ services:
     environment:
       DB_CONN: "user=postgres password=mypasswordOrders dbname=orders_db host=orders-db sslmode=disable"
 
+  authorization-db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: mypasswordAuthorization
+      POSTGRES_DB: authorization_db
+    volumes:
+      - authorization_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  authorization-microservice:
+    build: ./backend/authorization-microservice
+    restart: always
+    ports:
+      - "8093:8080"
+    depends_on:
+      authorization-db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ./backend/authorization-microservice:/authorization-microservice
+    environment:
+      JWT_SECRET: 8fhj3k4j5h2k3j4h5k6j7h8k9j2h3j4k5h6j7h8k9j0k1j2h3g4f5d6s7a8s9d0f
+      DB_CONN: "user=postgres password=mypasswordAuthorization dbname=authorization_db host=authorization-db sslmode=disable"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: myredispassword
+
+  authorization-migration:
+    build: ./backend/authorization-migration-service
+    restart: "no"
+    depends_on:
+      authorization-db:
+        condition: service_healthy
+    environment:
+      DB_CONN: "user=postgres password=mypasswordAuthorization dbname=authorization_db host=authorization-db sslmode=disable"
+
   admin-microservice:
     build: ./backend/admin-microservice
     restart: always
@@ -108,7 +149,6 @@ services:
       redis:
         condition: service_started
     environment:
-      JWT_SECRET: 8fhj3k4j5h2k3j4h5k6j7h8k9j2h3j4k5h6j7h8k9j0k1j2h3g4f5d6s7a8s9d0f
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: myredispassword
@@ -137,6 +177,14 @@ services:
       - ./pgadmin/servers.json:/pgadmin4/servers.json
       - ./pgadmin/pgpass:/pgpass
     user: "root"
+
+  telegram-microservice:
+    build: ./backend/telegram-microservice
+    restart: always
+    ports:
+      - "8094:8080"
+    volumes:
+      - ./backend/telegram-microservice:/telegram-microservice
 
   #zookeeper:
     #image: confluentinc/cp-zookeeper:7.4.0
@@ -167,3 +215,4 @@ services:
 volumes:
   products_data:
   orders_data:
+  authorization_data:

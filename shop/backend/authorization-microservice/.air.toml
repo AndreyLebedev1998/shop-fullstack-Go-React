@@ -1,0 +1,73 @@
+#:schema https://json.schemastore.org/any.json
+
+# Корневая директория проекта (откуда air запускается)
+root = "."
+
+# Папка с тестовыми данными — air её игнорирует
+testdata_dir = "testdata"
+
+# Куда air кладёт скомпилированный бинарник
+tmp_dir = "tmp"
+
+[build]
+  args_bin = []                     # Дополнительные аргументы для запуска бинарника (редко нужен)
+  bin = "tmp/main"                  # Имя и путь к скомпилированному бинарнику
+  cmd = "go build -o ./tmp/main ."  # Команда сборки (можно добавить флаги: -ldflags, -tags и т.д.)
+  delay = 1000                      # Задержка в мс перед запуском после завершения сборки (обычно 500–1000)
+  entrypoint = ["tmp/main"]         # Что именно запускать после сборки (можно ["dlv", "exec", "tmp/main"] для дебага)
+
+  # Какие папки полностью игнорировать
+  exclude_dir = ["assets", "tmp", "vendor", "testdata"]
+
+  # Какие конкретные файлы игнорировать
+  exclude_file = []
+
+  # Регуляркой игнорировать (по умолчанию игнорирует все *_test.go)
+  exclude_regex = ["_test.go"]
+
+  exclude_unchanged = false         # Не пересобирать, если файл не изменился (обычно false)
+  follow_symlink = false            # Следовать по симлинкам или нет
+  full_bin = ""                     # Полная команда запуска вместо простого ./tmp/main (например, с env-переменными)
+
+  include_dir = []                  # Принудительно следить только за этими папками
+  include_ext = ["go", "tpl", "tmpl", "html"]  # Следить за изменениями только этих расширений
+  include_file = []                 # Принудительно следить за конкретными файлами
+
+  kill_delay = "0s"                 # Сколько ждать перед kill старого процесса (0s = сразу SIGKILL)
+  log = "build-errors.log"          # Куда писать ошибки сборки
+
+  # === КЛЮЧЕВЫЕ НАСТРОЙКИ ДЛЯ DOCKER ===
+  poll = true                       # ВКЛЮЧАЕТ polling вместо inotify (ОБЯЗАТЕЛЬНО в Docker на Linux!)
+  poll_interval = 300               # Как часто (в мс) проверять изменения файлов (200–500 — оптимально)
+
+  post_cmd = []                     # Команда после успешной сборки и запуска
+  pre_cmd = []                      # Команда перед сборкой (например, миграции, генерация кода)
+
+  rerun = false                     # Перезапускать даже если процесс упал с ошибкой
+  rerun_delay = 500                 # Задержка перед рестартом при rerun = true
+  send_interrupt = false            # Посылать Ctrl+C (SIGINT) старому процессу вместо kill
+  stop_on_error = false             # Останавливать watcher при ошибке сборки
+
+[color]
+  app = ""                          # Цвет вывода приложения (пусто = дефолт)
+  build = "yellow"                  # Цвет строки "building..."
+  main = "magenta"                  # Цвет заголовка air
+  runner = "green"                  # Цвет строки "running..."
+  watcher = "cyan"                  # Цвет строки "watching ..."
+
+[log]
+  main_only = false                 # Показывать только вывод твоего приложения (true = скрывает логи air)
+  silent = false                    # Полностью без логов air
+  time = false                      # Печатать ли timestamp у каждой строки
+
+[misc]
+  clean_on_exit = false             # Удалять tmp_dir при выходе
+
+[proxy]
+  app_port = 0                      # Если >0 — air запустит прокси на proxy_port → app_port
+  enabled = false
+  proxy_port = 0
+
+[screen]
+  clear_on_rebuild = false          # Очищать экран при каждой пересборке
+  keep_scroll = true                # Сохранять позицию скролла в терминале

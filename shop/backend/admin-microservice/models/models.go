@@ -33,3 +33,17 @@ type OrderStatus struct {
 type OrderStatusPaid struct {
 	StatusPaid string `json:"status_paid"`
 }
+
+type FullOrder struct {
+	OrderId  int64      `json:"order_id"`
+	Products []Products `json:"products"`
+}
+
+type Products struct {
+	ProductId int `json:"product_id"`
+	Quantity  int `json:"quantity"`
+}
+
+type NewTelegramToken struct {
+	Token string `json:"token"`
+}

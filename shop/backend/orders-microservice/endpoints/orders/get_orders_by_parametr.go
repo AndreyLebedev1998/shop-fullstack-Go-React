@@ -3,12 +3,17 @@ package orders
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"orders-microservice/helpers"
 	"orders-microservice/models"
+	"time"
+
+	product "github.com/AndreyLebedev1998/shop-gRPC-product"
+	"github.com/redis/go-redis/v9"
 )
 
-func GetOrdersByParametr(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+func GetOrdersByParametr(w http.ResponseWriter, r *http.Request, db *sql.DB, rdb *redis.Client, client product.ProductsServiceClient) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -20,16 +25,44 @@ func GetOrdersByParametr(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	var ctx = r.Context()
 	var fullOrders []models.FullOrder
 	ordersMap := make(map[int]*models.FullOrder)
-	var query string = `SELECT orders.id as order_id, user_id, email, phone, status, total_price, created_at, order_items.id AS order_item_id, 
-							product_id, quantity, order_items.price, product_name, category_id, category_name, image_url
-							FROM orders 
-							JOIN order_items ON orders.id = order_items.order_id
-							JOIN products ON order_items.product_id = products.id
-							JOIN categories ON products.category_id = categories.id`
+	var productIDsSet = make(map[int]struct{})
 
-	if emailParametr != "" {
+	cacheKey := "orders:user"
 
-		rows, err := db.QueryContext(ctx, query+" "+helpers.SqlQueryWithParam("email"), emailParametr)
+	val, err := rdb.Get(ctx, cacheKey).Result()
+	if err == nil {
+		if json.Unmarshal([]byte(val), &fullOrders) == nil {
+			w.Header().Add("Content-Type", "application/json")
+			fmt.Println("Redis")
+			json.NewEncoder(w).Encode(fullOrders)
+			return
+		}
+	}
+
+	var query string = `SELECT orders.id as order_id, user_id, email, phone, status, total_price, created_at, 
+						product_id, quantity, order_items.price
+						FROM orders 
+						JOIN order_items ON orders.id = order_items.order_id`
+
+	if emailParametr != "" || phoneParamert != "" || userIdParametr != "" {
+		var params = []models.ParamsForQuery{
+			{
+				Column: "email",
+				Value:  emailParametr,
+			},
+			{
+				Column: "phone",
+				Value:  phoneParamert,
+			},
+			{
+				Column: "user_id",
+				Value:  userIdParametr,
+			},
+		}
+
+		dynamicQuery, args := helpers.SqlQueryWithParam(params)
+
+		rows, err := db.QueryContext(ctx, query+" "+dynamicQuery, args...)
 
 		if err != nil {
 			http.Error(w, "Error while querying the database", http.StatusInternalServerError)
@@ -38,7 +71,7 @@ func GetOrdersByParametr(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 
 		defer rows.Close()
 
-		if err := helpers.ForRowsAfterQuery(rows, ordersMap); err != nil {
+		if err := helpers.ForRowsAfterQuery(rows, ordersMap, productIDsSet); err != nil {
 			http.Error(w, "Server error", http.StatusInternalServerError)
 			return
 		}
@@ -48,45 +81,46 @@ func GetOrdersByParametr(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		}
 	}
 
-	if phoneParamert != "" {
-		rows, err := db.QueryContext(ctx, query+" "+helpers.SqlQueryWithParam("email"), emailParametr)
+	var productIDs []int64
 
-		if err != nil {
-			http.Error(w, "Error while querying the database", http.StatusInternalServerError)
-			return
-		}
+	for id := range productIDsSet {
+		productIDs = append(productIDs, int64(id))
+	}
 
-		defer rows.Close()
+	resp, err := client.GetProductsByIds(ctx, &product.GetProductsRequest{
+		ProductIds: productIDs,
+	})
 
-		if err := helpers.ForRowsAfterQuery(rows, ordersMap); err != nil {
-			http.Error(w, "Server error", http.StatusInternalServerError)
-			return
-		}
+	if err != nil {
+		http.Error(w, "server error", http.StatusInternalServerError)
+		return
+	}
 
-		for _, order := range ordersMap {
-			fullOrders = append(fullOrders, *order)
+	productsMap := make(map[int64]*product.Product)
+
+	for _, p := range resp.Products {
+		productsMap[p.Id] = p
+	}
+
+	for i := range fullOrders {
+		for j := range fullOrders[i].Products {
+
+			pid := int64(fullOrders[i].Products[j].ProductId)
+
+			if p, ok := productsMap[pid]; ok {
+				fullOrders[i].Products[j] = models.Products{
+					ProductId:    int(p.Id),
+					ProductName:  p.ProductName,
+					CategoryId:   int(p.CategoryId),
+					CategoryName: p.CategoryName,
+					ImageUrl:     &p.ImageUrl,
+				}
+			}
 		}
 	}
 
-	if userIdParametr != "" {
-		rows, err := db.QueryContext(ctx, query+" "+helpers.SqlQueryWithParam("email"), emailParametr)
-
-		if err != nil {
-			http.Error(w, "Error while querying the database", http.StatusInternalServerError)
-			return
-		}
-
-		defer rows.Close()
-
-		if err := helpers.ForRowsAfterQuery(rows, ordersMap); err != nil {
-			http.Error(w, "Server error", http.StatusInternalServerError)
-			return
-		}
-
-		for _, order := range ordersMap {
-			fullOrders = append(fullOrders, *order)
-		}
-	}
+	bytes, _ := json.Marshal(fullOrders)
+	rdb.Set(ctx, cacheKey, bytes, 5*time.Minute)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(fullOrders)

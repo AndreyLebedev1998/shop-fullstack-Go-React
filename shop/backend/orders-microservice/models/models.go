@@ -91,8 +91,29 @@ type OrderStatus struct {
 	Status string
 }
 
+type OrderStatusPaid struct {
+	Id         int64
+	StatusPaid string
+}
+
 type OrderStatusResponse struct {
 	Response bool
 	Status   string
 	Id       int64
+}
+
+type ParamsForQuery struct {
+	Column string
+	Value  string
+}
+
+type OrderItems struct {
+	Id        int64
+	ProductId int64
+	Quantity  int64
+}
+
+type TimeStampOrder struct {
+	CreatedAt string `json:"created_at"`
+	UpdatedAt string `json:"updated_at"`
 }

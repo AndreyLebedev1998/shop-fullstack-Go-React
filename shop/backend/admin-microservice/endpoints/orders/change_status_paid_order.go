@@ -4,75 +4,60 @@ import (
 	"admin-microservice/constants"
 	"admin-microservice/helpers"
 	"admin-microservice/models"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
+
+	order "github.com/AndreyLebedev1998/shop-gRPC-orders"
 )
 
-func ChangeStatusPaidOrder(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+func ChangeStatusPaidOrder(w http.ResponseWriter, r *http.Request, clientOrder order.OrderServiceClient) {
 	if r.Method != http.MethodPatch {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	var orderId = r.URL.Query().Get("order_id")
-	var orderStatusPaid models.OrderStatusPaid
+	var status models.OrderStatusPaid
 	var ctx = r.Context()
-
+	var orderId = r.URL.Query().Get("order_id")
 	if orderId == "" {
 		http.Error(w, "order_id is not defined", http.StatusBadRequest)
 		return
 	}
 
-	orderIdNum, err := strconv.Atoi(orderId)
-	if err != nil || orderIdNum < 0 {
-		http.Error(w, "order_id is not valid", http.StatusBadGateway)
+	id, err := strconv.Atoi(orderId)
+	if err != nil || id < 0 {
+		http.Error(w, "Invalid order_id", http.StatusBadRequest)
 		return
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&orderStatusPaid); err != nil {
-		http.Error(w, "status_paid is not defined", http.StatusBadRequest)
+	if err := json.NewDecoder(r.Body).Decode(&status); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	var statusStr constants.OrderStatusPaid = constants.OrderStatusPaid(orderStatusPaid.StatusPaid)
+	var statusStr constants.OrderStatusPaid = constants.OrderStatusPaid(status.StatusPaid)
 
 	isValid := helpers.IsValidStatusPaid(statusStr)
 
-	fmt.Println(isValid)
-
 	if isValid {
-		query := `UPDATE orders SET status_paid = $1 WHERE id = $2`
+		resp, err := clientOrder.ChangeOrderStatusPaid(ctx, &order.OrderStatusPaid{
+			Id:         int64(id),
+			StatusPaid: status.StatusPaid,
+		})
 
-		res, err := db.ExecContext(ctx, query, orderStatusPaid.StatusPaid, orderId)
-
-		if err != nil {
-			http.Error(w, "Error update order", http.StatusInternalServerError)
-			return
-		}
-
-		rowsUpdated, err := res.RowsAffected()
+		fmt.Println(err)
 
 		if err != nil {
-			http.Error(w, "Server error", http.StatusInternalServerError)
+			http.Error(w, "Server error", http.StatusBadRequest)
 			return
 		}
 
-		if rowsUpdated == 0 {
-			http.Error(w, "order is not defined", http.StatusBadRequest)
-			return
-		}
-
-		var success = map[string]string{
-			"response": "Status changed successfully",
-			"status":   string(statusStr),
-		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(success)
+		json.NewEncoder(w).Encode(resp)
 	} else {
-		http.Error(w, "status_paid is not valid", http.StatusBadRequest)
+		http.Error(w, "status is not valid", http.StatusBadRequest)
 		return
 	}
 }

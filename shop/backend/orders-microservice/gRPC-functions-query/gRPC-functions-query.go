@@ -36,3 +36,35 @@ func ChangeOrderStatus(db *sql.DB, orderStatus models.OrderStatus) (models.Order
 	}
 	return message, nil
 }
+
+func ChangeOrderStatusPaid(db *sql.DB, orderStatus models.OrderStatusPaid) (models.OrderStatusResponse, error) {
+	query := "UPDATE orders SET status_paid = $1 WHERE id = $2"
+
+	rows, err := db.Exec(query, orderStatus.StatusPaid, orderStatus.Id)
+	if err != nil {
+		message := models.OrderStatusResponse{
+			Response: false,
+			Status:   "update status_paid failed",
+			Id:       orderStatus.Id,
+		}
+		return message, err
+	}
+
+	updatedRows, _ := rows.RowsAffected()
+
+	if updatedRows == 0 {
+		message := models.OrderStatusResponse{
+			Response: false,
+			Status:   "order is not defined",
+			Id:       orderStatus.Id,
+		}
+		return message, nil
+	}
+
+	message := models.OrderStatusResponse{
+		Response: true,
+		Status:   "order status successfully updated",
+		Id:       orderStatus.Id,
+	}
+	return message, nil
+}

@@ -13,8 +13,10 @@ import (
 	"os"
 	"time"
 
+	auth "github.com/AndreyLebedev1998/auth-grpc"
 	order "github.com/AndreyLebedev1998/shop-gRPC-orders"
 	product "github.com/AndreyLebedev1998/shop-gRPC-product"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/redis/go-redis/v9"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/backoff"
@@ -36,7 +38,7 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println("✅ Подключено к PostgreSQL orders-microservice 12")
+	fmt.Println("✅ Подключено к PostgreSQL orders-microservice")
 
 	var ctx = context.Background()
 
@@ -104,24 +106,63 @@ func main() {
 		}
 	}()
 
+	connAuth, err := grpc.Dial("authorization-microservice:50051", grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithConnectParams(grpc.ConnectParams{
+			Backoff: backoff.Config{
+				BaseDelay:  100 * time.Millisecond,
+				MaxDelay:   5 * time.Second,
+				Multiplier: 1.6,
+				Jitter:     0.2,
+			},
+
+			MinConnectTimeout: 5 * time.Second,
+		}),
+	)
+
+	if err != nil {
+		log.Fatal("gRPC dial error:", err)
+	}
+
+	defer conn.Close()
+
+	clientAuth := auth.NewAuthServiceClient(connAuth)
+	var bot *tgbotapi.BotAPI
+
+	// Получение телегарм бота
+	token, err := clientAuth.GetTelegramToken(ctx, &auth.Empty{})
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	if token != nil {
+		bot, err = tgbotapi.NewBotAPI(token.Token)
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
+
 	mux.Handle("/create-order", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		orders.CreateOrder(w, r, db, client)
+		orders.CreateOrder(w, r, db, client, clientAuth, bot)
 	})))
 
 	mux.Handle("/change-order", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		orders.ChangeOrder(w, r, db, client)
+		orders.ChangeOrder(w, r, db, client, clientAuth, bot)
 	})))
 
 	mux.Handle("/get-orders-by-parametr", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		orders.GetOrdersByParametr(w, r, db)
+		orders.GetOrdersByParametr(w, r, db, rdb, client)
 	})))
 
 	mux.Handle("/get-orders-by-date-from-user", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		orders.GetOrdersOneDateByUser(w, r, db)
+		orders.GetOrdersOneDateByUser(w, r, db, rdb, client)
 	})))
 
 	mux.Handle("/get-orders-from-user-between-date", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		orders.GetOrdersByUserBetweenDate(w, r, db)
+		orders.GetOrdersByUserBetweenDate(w, r, db, rdb, client)
+	})))
+
+	mux.Handle("/get-orders-one-date", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		orders.GetOrdersOneDate(w, r, db, rdb, client)
 	})))
 
 	http.ListenAndServe(":8080", mux)

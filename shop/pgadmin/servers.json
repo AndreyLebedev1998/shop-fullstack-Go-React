@@ -19,6 +19,16 @@
       "Username": "postgres",
       "Password": "mypasswordOrders",
       "SSLMode": "prefer"
+    },
+    "3": {
+      "Name": "authorization_db",
+      "Group": "Servers",
+      "Host": "authorization-db",
+      "Port": 5432,
+      "MaintenanceDB": "authorization_db",
+      "Username": "postgres",
+      "Password": "mypasswordAuthorization",
+      "SSLMode": "prefer"
     }
   }
 }

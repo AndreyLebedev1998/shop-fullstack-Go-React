@@ -4,14 +4,17 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"orders-microservice/helpers"
 	"orders-microservice/models"
 
+	"github.com/AndreyLebedev1998/auth-grpc"
 	product "github.com/AndreyLebedev1998/shop-gRPC-product"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
-func ChangeOrder(w http.ResponseWriter, r *http.Request, db *sql.DB, client product.ProductsServiceClient) {
+func ChangeOrder(w http.ResponseWriter, r *http.Request, db *sql.DB, client product.ProductsServiceClient, clientAuth auth.AuthServiceClient, bot *tgbotapi.BotAPI) {
 	if r.Method != http.MethodPut {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -157,15 +160,25 @@ func ChangeOrder(w http.ResponseWriter, r *http.Request, db *sql.DB, client prod
 		}
 	}
 
+	queryGerOrder := "SELECT created_at, updated_at FROM orders WHERE id = $1"
+
+	var timeStampOrder models.TimeStampOrder
+
+	err = tx.QueryRowContext(ctx, queryGerOrder, order.Id).Scan(&timeStampOrder.CreatedAt, &timeStampOrder.UpdatedAt)
+
+	if err != nil {
+		http.Error(w, "server error", http.StatusInternalServerError)
+		return
+	}
+
 	fullOrder.OrderId = order.Id
 	fullOrder.UserId = order.UserId
 	fullOrder.Email = order.Email
 	fullOrder.Phone = order.Phone
 	fullOrder.Status = *order.Status
-	fullOrder.TotalPrice = order.TotalPrice
-	fullOrder.CreatedAt = order.CreatedAt
-	fullOrder.UpdatedAt = order.UpdatedAt
 	fullOrder.Products = productsInOrder
+	fullOrder.CreatedAt = timeStampOrder.CreatedAt
+	fullOrder.UpdatedAt = timeStampOrder.UpdatedAt
 
 	grpcNewItems := make([]*product.UpdateProductQuantity, 0, len(oldItems))
 	grpcOldItems := make([]*product.UpdateProductQuantity, 0, len(oldItems))
@@ -188,9 +201,8 @@ func ChangeOrder(w http.ResponseWriter, r *http.Request, db *sql.DB, client prod
 		NewItems: grpcNewItems,
 		OldItems: grpcOldItems,
 		IsCreate: false,
+		IsDelete: false,
 	})
-
-	fmt.Println(response)
 
 	if err != nil {
 		http.Error(w, "Server error 1", http.StatusInternalServerError)
@@ -217,6 +229,44 @@ func ChangeOrder(w http.ResponseWriter, r *http.Request, db *sql.DB, client prod
 	if err := tx.Commit(); err != nil {
 		http.Error(w, "Commit failed", http.StatusInternalServerError)
 		return
+	}
+
+	var userEmail string
+	if fullOrder.Email != nil {
+		userEmail = *fullOrder.Email
+	}
+
+	var userId int64
+	if fullOrder.UserId != nil {
+		userId = int64(*fullOrder.UserId)
+	}
+
+	var userPhone string
+	if fullOrder.Phone != nil {
+		userPhone = *fullOrder.Phone
+	}
+
+	respAuth, err := clientAuth.GetChatIdForUser(ctx, &auth.ParamUser{
+		Email: userEmail,
+		Id:    userId,
+		Phone: userPhone,
+	})
+
+	fmt.Println(respAuth)
+
+	if err != nil {
+		fmt.Println(err)
+		fmt.Println("Ошибка отправки заказа в Telegram")
+	} else {
+		orderTg := helpers.FormatOrderMessage(fullOrder, false)
+
+		msg := tgbotapi.NewMessage(respAuth.ChatId, orderTg)
+		msg.ParseMode = "HTML"
+		res, err := bot.Send(msg)
+		if err != nil {
+			log.Println(err)
+		}
+		fmt.Println(res)
 	}
 
 	w.Header().Set("Content-Type", "application/json")

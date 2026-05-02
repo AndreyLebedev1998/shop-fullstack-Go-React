@@ -1,3 +1,9 @@
+github.com/AndreyLebedev1998/shop-gRPC-orders v1.0.1 h1:5+lyLk8mB7Wkv0Saq0txAz/qf4UmfZX+Md9jXS7tdkU=
+github.com/AndreyLebedev1998/shop-gRPC-orders v1.0.1/go.mod h1:9kYSm52wjquaa0ILd8utZykeR7T5lmSrtIql8dhzZ2s=
+github.com/AndreyLebedev1998/shop-gRPC-orders v1.0.3 h1:Pr7oUcMeVyLK2KgpIF7VHPgLUOUft4rB1R6hosIN5G4=
+github.com/AndreyLebedev1998/shop-gRPC-orders v1.0.3/go.mod h1:9kYSm52wjquaa0ILd8utZykeR7T5lmSrtIql8dhzZ2s=
+github.com/AndreyLebedev1998/shop-gRPC-orders v1.0.4 h1:eZf5QfZPNn/1Wyk+R7m7PIkJBb60JhInFvAnK1LQN30=
+github.com/AndreyLebedev1998/shop-gRPC-orders v1.0.4/go.mod h1:9kYSm52wjquaa0ILd8utZykeR7T5lmSrtIql8dhzZ2s=
 github.com/AndreyLebedev1998/shop-gRPC-product v1.1.1 h1:U3uu7ueWMutVkfQF0amsxZgePAKmK+f7QosgGK+wDZY=
 github.com/AndreyLebedev1998/shop-gRPC-product v1.1.1/go.mod h1:Chbhc2TvcoViIKU8La01oGbQkzPyLJnY6rtm97A2QiU=
 github.com/AndreyLebedev1998/shop-gRPC-product v1.1.2 h1:mFXqkCQ/YZaOkykFJ9YDy2lATznJJi8geJ//1gJ+ml8=
@@ -18,6 +24,12 @@ github.com/AndreyLebedev1998/shop-gRPC-product v1.3.4 h1:RcjamnYROjWjP6SePTNyzP7
 github.com/AndreyLebedev1998/shop-gRPC-product v1.3.4/go.mod h1:Chbhc2TvcoViIKU8La01oGbQkzPyLJnY6rtm97A2QiU=
 github.com/AndreyLebedev1998/shop-gRPC-product v1.3.5 h1:oyZL3Qp2tPChJ1DTFUbxz+SFNvB0UHTWhp8PPqV3dgE=
 github.com/AndreyLebedev1998/shop-gRPC-product v1.3.5/go.mod h1:Chbhc2TvcoViIKU8La01oGbQkzPyLJnY6rtm97A2QiU=
+github.com/AndreyLebedev1998/shop-gRPC-product v1.3.6 h1:hfHaVIcuziMim7ho5EGtZ5wTg5sFibuzmmZr0Jm6Fyw=
+github.com/AndreyLebedev1998/shop-gRPC-product v1.3.6/go.mod h1:Chbhc2TvcoViIKU8La01oGbQkzPyLJnY6rtm97A2QiU=
+github.com/AndreyLebedev1998/shop-gRPC-product v1.3.7 h1:+BPGf/Lif0HKivxPGnuTzs6CJiB1JFsnlZSB7wbuDDk=
+github.com/AndreyLebedev1998/shop-gRPC-product v1.3.7/go.mod h1:Chbhc2TvcoViIKU8La01oGbQkzPyLJnY6rtm97A2QiU=
+github.com/AndreyLebedev1998/shop-gRPC-product v1.3.8 h1:ADD7qjnxxhNPK3VN4JzzOcYfuCWoGuNEFqTDj+KR0c4=
+github.com/AndreyLebedev1998/shop-gRPC-product v1.3.8/go.mod h1:Chbhc2TvcoViIKU8La01oGbQkzPyLJnY6rtm97A2QiU=
 github.com/KyleBanks/depth v1.2.1 h1:5h8fQADFrWtarTdtDudMmGsC7GPbOAu6RVB3ffsVFHc=
 github.com/KyleBanks/depth v1.2.1/go.mod h1:jzSb9d0L43HxTQfT+oSA1EEp2q+ne2uh6XgeJcm8brE=
 github.com/bsm/ginkgo/v2 v2.12.0 h1:Ny8MWAHyOepLGlLKYmXG4IEkioBysk6GpaRTLC8zwWs=

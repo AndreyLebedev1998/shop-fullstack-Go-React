@@ -4,18 +4,22 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
+	"log"
 	"net/http"
 	"orders-microservice/helpers"
 	"orders-microservice/models"
 
+	"github.com/AndreyLebedev1998/auth-grpc"
 	product "github.com/AndreyLebedev1998/shop-gRPC-product"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 func markOrderFailed(ctx context.Context, db *sql.DB, orderId int) {
 	_, _ = db.ExecContext(ctx, "UPDATE orders SET status = $1 WHERE id = $2", "failed", orderId)
 }
 
-func CreateOrder(w http.ResponseWriter, r *http.Request, db *sql.DB, client product.ProductsServiceClient) {
+func CreateOrder(w http.ResponseWriter, r *http.Request, db *sql.DB, client product.ProductsServiceClient, clientAuth auth.AuthServiceClient, bot *tgbotapi.BotAPI) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -155,12 +159,11 @@ func CreateOrder(w http.ResponseWriter, r *http.Request, db *sql.DB, client prod
 	for _, item := range order.OrderItems {
 		for _, p := range productsInOrder {
 			if item.ProductId == p.Id {
-				price := p.Price * float64(item.Quantity)
 				_, err = tx.ExecContext(ctx, queryOrderItems,
 					newOrderId.Id,
 					item.ProductId,
 					item.Quantity,
-					price,
+					p.Price,
 				)
 
 				if err != nil {
@@ -178,6 +181,7 @@ func CreateOrder(w http.ResponseWriter, r *http.Request, db *sql.DB, client prod
 
 	var emailInOrder = order.Email
 	var phoneInOrder = order.Phone
+	var userInOrder = order.UserId
 	var products []models.Products
 	var fullOrder models.FullOrder
 	if emailInOrder != nil && *emailInOrder != "" {
@@ -210,11 +214,39 @@ func CreateOrder(w http.ResponseWriter, r *http.Request, db *sql.DB, client prod
 				}
 			}
 		}
-	}
-
-	if phoneInOrder != nil && *phoneInOrder != "" {
+	} else if phoneInOrder != nil && *phoneInOrder != "" {
 		query += " WHERE phone = $1 AND order_id = $2"
 		rows, err := tx.QueryContext(ctx, query, phoneInOrder, newOrderId.Id)
+		if err != nil {
+			http.Error(w, "order receiving error", http.StatusInternalServerError)
+			return
+		}
+
+		for rows.Next() {
+			var item models.Products
+			err := rows.Scan(&fullOrder.OrderId, &fullOrder.UserId, &fullOrder.Email, &fullOrder.Phone, &fullOrder.Status,
+				&fullOrder.TotalPrice, &fullOrder.CreatedAt, &item.ProductId, &item.Quantity, &item.Price)
+
+			if err != nil {
+				http.Error(w, "Error reading row", http.StatusInternalServerError)
+				return
+			}
+			products = append(products, item)
+		}
+
+		for i := range products {
+			for _, p := range productsInOrder {
+				if products[i].ProductId == p.Id {
+					products[i].CategoryId = p.CategoryId
+					products[i].CategoryName = p.CategoryName
+					products[i].ImageUrl = p.ImageUrl
+					products[i].ProductName = p.ProductName
+				}
+			}
+		}
+	} else if userInOrder != nil && *userInOrder != 0 {
+		query += " WHERE user_id = $1 AND order_id = $2"
+		rows, err := tx.QueryContext(ctx, query, userInOrder, newOrderId.Id)
 		if err != nil {
 			http.Error(w, "order receiving error", http.StatusInternalServerError)
 			return
@@ -263,6 +295,7 @@ func CreateOrder(w http.ResponseWriter, r *http.Request, db *sql.DB, client prod
 		NewItems: grpcItems,
 		OldItems: grpcItems,
 		IsCreate: true,
+		IsDelete: false,
 	})
 
 	if err != nil {
@@ -275,6 +308,43 @@ func CreateOrder(w http.ResponseWriter, r *http.Request, db *sql.DB, client prod
 		markOrderFailed(ctx, db, newOrderId.Id)
 		http.Error(w, response.Message, http.StatusInternalServerError)
 		return
+	}
+
+	var userEmail string
+	if fullOrder.Email != nil {
+		userEmail = *fullOrder.Email
+	}
+
+	var userId int64
+	if fullOrder.UserId != nil {
+		userId = int64(*fullOrder.UserId)
+	}
+
+	var userPhone string
+	if fullOrder.Phone != nil {
+		userPhone = *fullOrder.Phone
+	}
+
+	respAuth, err := clientAuth.GetChatIdForUser(ctx, &auth.ParamUser{
+		Email: userEmail,
+		Id:    userId,
+		Phone: userPhone,
+	})
+
+	fmt.Println(respAuth)
+
+	if err != nil {
+		fmt.Println(err)
+		fmt.Println("Ошибка отправки заказа в Telegram")
+	} else {
+		orderTg := helpers.FormatOrderMessage(fullOrder, true)
+
+		msg := tgbotapi.NewMessage(respAuth.ChatId, orderTg)
+		msg.ParseMode = "HTML"
+		_, err := bot.Send(msg)
+		if err != nil {
+			log.Println(err)
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
