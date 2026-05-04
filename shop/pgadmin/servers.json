@@ -29,6 +29,16 @@
       "Username": "postgres",
       "Password": "mypasswordAuthorization",
       "SSLMode": "prefer"
+    },
+    "4": {
+      "Name": "admin_db",
+      "Group": "Servers",
+      "Host": "admin-db",
+      "Port": 5432,
+      "MaintenanceDB": "admin_db",
+      "Username": "postgres",
+      "Password": "mypasswordAdmin",
+      "SSLMode": "prefer"
     }
   }
 }

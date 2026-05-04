@@ -12,6 +12,7 @@ require (
 )
 
 require (
+	github.com/AndreyLebedev1998/admin-grpc v1.0.2 // indirect
 	github.com/AndreyLebedev1998/auth-grpc v1.0.5 // indirect
 	github.com/AndreyLebedev1998/shop-gRPC-orders v1.0.4 // indirect
 	github.com/AndreyLebedev1998/shop-gRPC-product v1.3.8 // indirect

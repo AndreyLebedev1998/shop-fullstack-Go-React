@@ -10,6 +10,8 @@ type User struct {
 
 type Entrance struct {
 	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Phone    string `json:"phone"`
 	Password string `json:"password"`
 }
 
@@ -31,4 +33,23 @@ type UserEntrance struct {
 type Claims struct {
 	UserID int `json:"user_id"`
 	jwt.RegisteredClaims
+}
+
+type RecoveryPasswordData struct { // структура для получения контакных данных для отправки кода
+	Email string `json:"email"`
+	Phone string `json:"phone"`
+}
+
+type DataRecoveryPassword struct { // структура для получения контакных данных и сверкой кода
+	Email string `json:"email"`
+	Phone string `json:"phone"`
+	Code  string `json:"code"`
+}
+
+type RecoveryPassword struct { // структура для восстановления пароля
+	Email                string `json:"email"`
+	Phone                string `json:"phone"`
+	Token                string `json:"token"`
+	ConfirmationPassword string `json:"confirmation_password"`
+	NewPassword          string `json:"new_password"`
 }

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/AndreyLebedev1998/admin-grpc"
 	auth "github.com/AndreyLebedev1998/auth-grpc"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"google.golang.org/grpc"
@@ -38,10 +39,30 @@ func main() {
 
 	defer connAuth.Close()
 
+	connAdmin, err := grpc.Dial("admin-microservice:50051", grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithConnectParams(grpc.ConnectParams{
+			Backoff: backoff.Config{
+				BaseDelay:  100 * time.Millisecond,
+				MaxDelay:   5 * time.Second,
+				Multiplier: 1.6,
+				Jitter:     0.2,
+			},
+
+			MinConnectTimeout: 5 * time.Second,
+		}),
+	)
+
+	if err != nil {
+		log.Fatal("gRPC dial error:", err)
+	}
+
+	defer connAdmin.Close()
+
 	clientAuth := auth.NewAuthServiceClient(connAuth)
+	clientAdmin := admin.NewAdminServiceClient(connAdmin)
 
 	// Получение телегарм бота
-	token, err := clientAuth.GetTelegramToken(ctx, &auth.Empty{})
+	token, err := clientAdmin.GetTelegramToken(ctx, &admin.Empty{})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -62,7 +83,7 @@ func main() {
 	log.Printf("Authorized on account %s", bot.Self.UserName)
 
 	u := tgbotapi.NewUpdate(0)
-	u.Timeout = 10
+	u.Timeout = 60
 
 	updates, err := bot.GetUpdatesChan(u)
 

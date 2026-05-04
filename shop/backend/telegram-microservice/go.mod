@@ -3,6 +3,7 @@ module telegram-microservice
 go 1.26.1
 
 require (
+	github.com/AndreyLebedev1998/admin-grpc v1.0.2 // indirect
 	github.com/AndreyLebedev1998/auth-grpc v1.0.5 // indirect
 	github.com/go-telegram-bot-api/telegram-bot-api v4.6.4+incompatible // indirect
 	github.com/technoweenie/multipartstreamer v1.0.1 // indirect

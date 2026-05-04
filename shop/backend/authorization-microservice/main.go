@@ -3,6 +3,7 @@ package main
 import (
 	"authorization-microservice/cors"
 	autentification "authorization-microservice/endpoints/autentification"
+	"authorization-microservice/endpoints/recovery"
 	"authorization-microservice/endpoints/telegram"
 	grpc_package "authorization-microservice/gRPC"
 	"context"
@@ -16,7 +17,10 @@ import (
 
 	"github.com/redis/go-redis/v9"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/backoff"
+	"google.golang.org/grpc/credentials/insecure"
 
+	admin "github.com/AndreyLebedev1998/admin-grpc"
 	auth "github.com/AndreyLebedev1998/auth-grpc"
 
 	_ "github.com/lib/pq"
@@ -76,6 +80,31 @@ func main() {
 		}
 	}()
 
+	conn, err := grpc.Dial("admin-microservice:50051", grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithConnectParams(grpc.ConnectParams{
+			Backoff: backoff.Config{
+				BaseDelay:  100 * time.Millisecond,
+				MaxDelay:   5 * time.Second,
+				Multiplier: 1.6,
+				Jitter:     0.2,
+			},
+
+			MinConnectTimeout: 5 * time.Second,
+		}),
+	)
+
+	if err != nil {
+		log.Fatal("gRPC dial error:", err)
+	}
+
+	defer conn.Close()
+
+	clientAdmin := admin.NewAdminServiceClient(conn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+
+	defer cancel()
+
 	mux := http.NewServeMux()
 
 	mux.Handle("/registration", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -92,6 +121,22 @@ func main() {
 
 	mux.Handle("/add-new-tg-bot-dialog", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		telegram.NewDialogTgBot(w, r, db)
+	})))
+
+	mux.Handle("/send-code-from-tg", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		recovery.SendCodeRecoveryPasswordInTelegram(w, r, db, rdb, clientAdmin)
+	})))
+
+	mux.Handle("/send-code-from-email", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		recovery.SendCodeRecoveryPasswordInEmail(w, r, db, rdb, clientAdmin)
+	})))
+
+	mux.Handle("/code-mathing", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		recovery.CodeMatching(w, r, db, rdb)
+	})))
+
+	mux.Handle("/recovery-password", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		recovery.RecoveryPassword(w, r, db)
 	})))
 
 	http.ListenAndServe(":8080", mux)

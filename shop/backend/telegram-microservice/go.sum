@@ -1,3 +1,9 @@
+github.com/AndreyLebedev1998/admin-grpc v1.0.0 h1:oSXa9v42ZgoBs9p8QAUViYy2QTDWmkOUF6+pq0Qau4Q=
+github.com/AndreyLebedev1998/admin-grpc v1.0.0/go.mod h1:cOSI/zMo6WRPw4JNOmwHbyYq5/vfe3XWZCRyVtVsGUU=
+github.com/AndreyLebedev1998/admin-grpc v1.0.1 h1:WCNVumd9Xe8iChckFmJFJ2C5z0LMlsVAQZ1nJ5zxwGU=
+github.com/AndreyLebedev1998/admin-grpc v1.0.1/go.mod h1:cOSI/zMo6WRPw4JNOmwHbyYq5/vfe3XWZCRyVtVsGUU=
+github.com/AndreyLebedev1998/admin-grpc v1.0.2 h1:OiqH3j/BopgBZnX6t00kii41AJkZi7Wml09dxZkPVa4=
+github.com/AndreyLebedev1998/admin-grpc v1.0.2/go.mod h1:cOSI/zMo6WRPw4JNOmwHbyYq5/vfe3XWZCRyVtVsGUU=
 github.com/AndreyLebedev1998/auth-grpc v1.0.0 h1:LKLd5TXBH3nr3IS7PypvdGGA/KVSAFvvJtEkEMBw6Pk=
 github.com/AndreyLebedev1998/auth-grpc v1.0.0/go.mod h1:VN0LkTdDL9ssemZEASAMUgKWtx5mXCugOFOrnZ2PW6g=
 github.com/AndreyLebedev1998/auth-grpc v1.0.1 h1:D2sT1Br2/7bNs8ZpPC7rFp6WddbfzYZMKU71WmigQX8=

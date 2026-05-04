@@ -95,7 +95,7 @@ func NewDialogTgBot(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		rowsGet, _ := rows.RowsAffected()
 
 		if rowsGet != 1 {
-			http.Error(w, "user is not defined", http.StatusBadRequest)
+			http.Error(w, "user is not defined or the token has expired", http.StatusBadRequest)
 			return
 		}
 

@@ -2,6 +2,7 @@ package autentification
 
 import (
 	"authorization-microservice/constants"
+	"authorization-microservice/helpers"
 	"authorization-microservice/models"
 	"database/sql"
 	"encoding/json"
@@ -25,66 +26,92 @@ func Login(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 
 	var storedHash string
 	var userID int
-	err := db.QueryRow("SELECT id, password FROM users WHERE name=$1", creds.Name).Scan(&userID, &storedHash)
+	ctx := r.Context()
 
-	if err == sql.ErrNoRows {
-		http.Error(w, "Invalid name or password", http.StatusUnauthorized)
+	getParamForQuery := helpers.GetParamUserForAuth(creds)
+	query := "SELECT id, password FROM users WHERE "
+	if creds.Email != "" || creds.Name != "" || creds.Phone != "" {
+		if creds.Email != "" {
+			query += "email = $1"
+		} else if creds.Phone != "" {
+			query += "phone = $1"
+		} else {
+			query += "name = $1"
+		}
+		err := db.QueryRowContext(ctx, query, getParamForQuery).Scan(&userID, &storedHash)
+
+		if err == sql.ErrNoRows {
+			http.Error(w, "Invalid name or password", http.StatusUnauthorized)
+			return
+		}
+
+		if err != nil {
+			http.Error(w, "Server error", http.StatusInternalServerError)
+			return
+		}
+
+		if err := bcrypt.CompareHashAndPassword([]byte(storedHash), []byte(creds.Password)); err != nil {
+			http.Error(w, "Invalid name or password", http.StatusUnauthorized)
+			return
+		}
+
+		expirationTime := time.Now().Add(24 * time.Hour)
+		claims := &models.Claims{
+			UserID: userID,
+			RegisteredClaims: jwt.RegisteredClaims{
+				ExpiresAt: jwt.NewNumericDate(expirationTime),
+				IssuedAt:  jwt.NewNumericDate(time.Now()),
+			},
+		}
+
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+		tokenString, err := token.SignedString(constants.JwtKey)
+		if err != nil {
+			http.Error(w, "Server error", http.StatusInternalServerError)
+			return
+		}
+
+		var user models.UserEntrance
+
+		queryReturnUser := "SELECT name, lastname, email, phone FROM users WHERE "
+
+		if creds.Email != "" {
+			queryReturnUser += "email = $1"
+		} else if creds.Phone != "" {
+			queryReturnUser += "phone = $1"
+		} else {
+			queryReturnUser += "name = $1"
+		}
+
+		err = db.QueryRowContext(ctx, queryReturnUser, getParamForQuery).Scan(&user.Name, &user.LastName, &user.Email, &user.Phone)
+
+		if err != nil {
+			http.Error(w, "Server error. Error get user", http.StatusInternalServerError)
+			return
+		}
+
+		var userEmail string
+		if user.Email != nil {
+			userEmail = *user.Email
+		}
+
+		var userPhone string
+
+		if user.Phone != nil {
+			userPhone = *user.Phone
+		}
+
+		json.NewEncoder(w).Encode(map[string]string{
+			"token":    tokenString,
+			"name":     user.Name,
+			"lastname": user.LastName,
+			"email":    userEmail,
+			"phone":    userPhone,
+		})
+	} else {
+		http.Error(w, "name or email or phone is not defined", http.StatusBadRequest)
 		return
 	}
-
-	if err != nil {
-		http.Error(w, "Server error", http.StatusInternalServerError)
-		return
-	}
-
-	if err := bcrypt.CompareHashAndPassword([]byte(storedHash), []byte(creds.Password)); err != nil {
-		http.Error(w, "Invalid name or password", http.StatusUnauthorized)
-		return
-	}
-
-	expirationTime := time.Now().Add(24 * time.Hour)
-	claims := &models.Claims{
-		UserID: userID,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(expirationTime),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-		},
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString(constants.JwtKey)
-	if err != nil {
-		http.Error(w, "Server error", http.StatusInternalServerError)
-		return
-	}
-
-	var user models.UserEntrance
-
-	err = db.QueryRow("SELECT name, lastname, email, phone FROM users WHERE name = $1", creds.Name).Scan(&user.Name, &user.LastName, &user.Email, &user.Phone)
-
-	if err != nil {
-		http.Error(w, "Server error. Error get user", http.StatusInternalServerError)
-		return
-	}
-
-	var userEmail string
-	if user.Email != nil {
-		userEmail = *user.Email
-	}
-
-	var userPhone string
-
-	if user.Phone != nil {
-		userPhone = *user.Phone
-	}
-
-	json.NewEncoder(w).Encode(map[string]string{
-		"token":    tokenString,
-		"name":     user.Name,
-		"lastname": user.LastName,
-		"email":    userEmail,
-		"phone":    userPhone,
-	})
 }
 
 func Me(w http.ResponseWriter, r *http.Request, db *sql.DB) {
@@ -94,6 +121,7 @@ func Me(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
+	ctx := r.Context()
 	if len(tokenStr) > 7 && tokenStr[:7] == "Bearer " {
 		tokenStr = tokenStr[7:]
 	}
@@ -110,7 +138,7 @@ func Me(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 
 	var user string
 
-	err = db.QueryRow("SELECT name FROM users WHERE id = $1", claims.UserID).Scan(&user)
+	err = db.QueryRowContext(ctx, "SELECT name FROM users WHERE id = $1", claims.UserID).Scan(&user)
 
 	if err != nil {
 		http.Error(w, "User not found", http.StatusNotFound)
@@ -119,7 +147,7 @@ func Me(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 
 	var userEntrance models.UserEntrance
 
-	err = db.QueryRow("SELECT name, lastname, email, phone FROM users WHERE name = $1", user).Scan(&userEntrance.Name, &userEntrance.LastName, &userEntrance.Email, &userEntrance.Phone)
+	err = db.QueryRowContext(ctx, "SELECT name, lastname, email, phone FROM users WHERE name = $1", user).Scan(&userEntrance.Name, &userEntrance.LastName, &userEntrance.Email, &userEntrance.Phone)
 
 	if err != nil {
 		http.Error(w, "Server error. Error get user", http.StatusInternalServerError)

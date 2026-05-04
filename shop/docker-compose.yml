@@ -140,6 +140,21 @@ services:
     environment:
       DB_CONN: "user=postgres password=mypasswordAuthorization dbname=authorization_db host=authorization-db sslmode=disable"
 
+  admin-db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: mypasswordAdmin
+      POSTGRES_DB: admin_db
+    volumes:
+      - admin_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   admin-microservice:
     build: ./backend/admin-microservice
     restart: always
@@ -148,14 +163,26 @@ services:
     depends_on:
       redis:
         condition: service_started
+      admin-db:
+        condition: service_healthy
     environment:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: myredispassword
       PRODUCTS_SERVICE_URL: http://products-microservice:8080
       ORDERS_SERVICE_URL: http://orders-microservice:8080
+      DB_CONN: "user=postgres password=mypasswordAdmin dbname=admin_db host=admin-db sslmode=disable"
     volumes:
       - ./backend/admin-microservice:/admin-microservice
+
+  admin-migration:
+    build: ./backend/admin-migration-service
+    restart: "no"
+    depends_on:
+      admin-db:
+        condition: service_healthy
+    environment:
+      DB_CONN: "user=postgres password=mypasswordAdmin dbname=admin_db host=admin-db sslmode=disable"
 
   redis:
     image: redis:7-alpine
@@ -211,8 +238,11 @@ services:
       #KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       #KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       #KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      #uxft vnzv ygqt bjf
 
 volumes:
   products_data:
   orders_data:
   authorization_data:
+  admin_data:
+  

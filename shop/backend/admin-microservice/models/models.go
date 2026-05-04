@@ -47,3 +47,8 @@ type Products struct {
 type NewTelegramToken struct {
 	Token string `json:"token"`
 }
+
+type EmailConnData struct {
+	SenderEmail string `json:"sender_email"`
+	Password    string `json:"password"`
+}
