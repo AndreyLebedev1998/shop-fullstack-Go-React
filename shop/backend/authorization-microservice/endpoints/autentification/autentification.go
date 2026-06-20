@@ -2,10 +2,10 @@ package autentification
 
 import (
 	"authorization-microservice/constants"
-	"authorization-microservice/helpers"
 	"authorization-microservice/models"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -28,90 +28,46 @@ func Login(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	var userID int
 	ctx := r.Context()
 
-	getParamForQuery := helpers.GetParamUserForAuth(creds)
-	query := "SELECT id, password FROM users WHERE "
-	if creds.Email != "" || creds.Name != "" || creds.Phone != "" {
-		if creds.Email != "" {
-			query += "email = $1"
-		} else if creds.Phone != "" {
-			query += "phone = $1"
-		} else {
-			query += "name = $1"
-		}
-		err := db.QueryRowContext(ctx, query, getParamForQuery).Scan(&userID, &storedHash)
+	query := "SELECT id, password FROM users WHERE email = $1"
+	fmt.Println("creds.Email:", creds.Email)
+	fmt.Println("creds.Password:", creds.Password)
+	err := db.QueryRowContext(ctx, query, creds.Email).Scan(&userID, &storedHash)
 
-		if err == sql.ErrNoRows {
-			http.Error(w, "Invalid name or password", http.StatusUnauthorized)
-			return
-		}
-
-		if err != nil {
-			http.Error(w, "Server error", http.StatusInternalServerError)
-			return
-		}
-
-		if err := bcrypt.CompareHashAndPassword([]byte(storedHash), []byte(creds.Password)); err != nil {
-			http.Error(w, "Invalid name or password", http.StatusUnauthorized)
-			return
-		}
-
-		expirationTime := time.Now().Add(24 * time.Hour)
-		claims := &models.Claims{
-			UserID: userID,
-			RegisteredClaims: jwt.RegisteredClaims{
-				ExpiresAt: jwt.NewNumericDate(expirationTime),
-				IssuedAt:  jwt.NewNumericDate(time.Now()),
-			},
-		}
-
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-		tokenString, err := token.SignedString(constants.JwtKey)
-		if err != nil {
-			http.Error(w, "Server error", http.StatusInternalServerError)
-			return
-		}
-
-		var user models.UserEntrance
-
-		queryReturnUser := "SELECT name, lastname, email, phone FROM users WHERE "
-
-		if creds.Email != "" {
-			queryReturnUser += "email = $1"
-		} else if creds.Phone != "" {
-			queryReturnUser += "phone = $1"
-		} else {
-			queryReturnUser += "name = $1"
-		}
-
-		err = db.QueryRowContext(ctx, queryReturnUser, getParamForQuery).Scan(&user.Name, &user.LastName, &user.Email, &user.Phone)
-
-		if err != nil {
-			http.Error(w, "Server error. Error get user", http.StatusInternalServerError)
-			return
-		}
-
-		var userEmail string
-		if user.Email != nil {
-			userEmail = *user.Email
-		}
-
-		var userPhone string
-
-		if user.Phone != nil {
-			userPhone = *user.Phone
-		}
-
-		json.NewEncoder(w).Encode(map[string]string{
-			"token":    tokenString,
-			"name":     user.Name,
-			"lastname": user.LastName,
-			"email":    userEmail,
-			"phone":    userPhone,
-		})
-	} else {
-		http.Error(w, "name or email or phone is not defined", http.StatusBadRequest)
+	if err == sql.ErrNoRows {
+		fmt.Println(err)
+		http.Error(w, "Invalid email or password", http.StatusUnauthorized)
 		return
 	}
+
+	if err != nil {
+		http.Error(w, "Server error", http.StatusInternalServerError)
+		return
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(storedHash), []byte(creds.Password)); err != nil {
+		http.Error(w, "Invalid email or password", http.StatusUnauthorized)
+		return
+	}
+
+	expirationTime := time.Now().Add(24 * time.Hour)
+	claims := &models.Claims{
+		UserID: userID,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(expirationTime),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := token.SignedString(constants.JwtKey)
+	if err != nil {
+		http.Error(w, "Server error", http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]string{
+		"token": tokenString,
+	})
 }
 
 func Me(w http.ResponseWriter, r *http.Request, db *sql.DB) {
@@ -161,5 +117,6 @@ func Me(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		"lastname":      userEntrance.LastName,
 		"email":         userEntrance.Email,
 		"phone":         userEntrance.Phone,
+		"token":         tokenStr,
 	})
 }

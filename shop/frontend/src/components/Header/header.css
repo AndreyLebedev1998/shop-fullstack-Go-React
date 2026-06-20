@@ -1,0 +1,41 @@
+.header__navbar {
+    height: 120px;
+}
+
+.header__img-logo {
+    width: 100px;
+}
+
+.header__button-burger {
+    display: block !important; /* Кнопка бургера всегда видна, перекрывает бутстраповский стиль */
+    margin-left: 10px;
+}
+
+.header__container {
+    width: 100%;
+    max-width: none !important; /* Перекрывет бутстраповский стиль. Снимает ограничение в max-width: 1320px; */
+}
+
+.header__brand {
+    margin-left: 10%;
+}
+
+.bi-box-arrow-left,
+.header_bi-person-icon {
+    font-size: 30px;
+    cursor: pointer;
+    margin-right: 20px;
+}
+
+.header_bi-globe-icon {
+    font-size: 25px;
+}
+
+.header__dropdown-change-language {
+    margin-right: 40px;
+}
+
+.header__link-wrapper {
+    display: flex;
+    justify-content: space-around;
+}

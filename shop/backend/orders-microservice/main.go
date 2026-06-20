@@ -13,6 +13,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/AndreyLebedev1998/admin-grpc"
 	auth "github.com/AndreyLebedev1998/auth-grpc"
 	order "github.com/AndreyLebedev1998/shop-gRPC-orders"
 	product "github.com/AndreyLebedev1998/shop-gRPC-product"
@@ -126,10 +127,36 @@ func main() {
 	defer conn.Close()
 
 	clientAuth := auth.NewAuthServiceClient(connAuth)
+
+	connAdmin, err := grpc.Dial("admin-microservice:50051", grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithConnectParams(grpc.ConnectParams{
+			Backoff: backoff.Config{
+				BaseDelay:  100 * time.Millisecond,
+				MaxDelay:   5 * time.Second,
+				Multiplier: 1.6,
+				Jitter:     0.2,
+			},
+
+			MinConnectTimeout: 5 * time.Second,
+		}),
+	)
+
+	if err != nil {
+		log.Fatal("gRPC dial error:", err)
+	}
+
+	defer conn.Close()
+
+	clientAdmin := admin.NewAdminServiceClient(connAdmin)
+
+	ctxAdmin, cancelAdmin := context.WithTimeout(context.Background(), 3*time.Second)
+
+	defer cancelAdmin()
+
 	var bot *tgbotapi.BotAPI
 
 	// Получение телегарм бота
-	token, err := clientAuth.GetTelegramToken(ctx, &auth.Empty{})
+	token, err := clientAdmin.GetTelegramToken(ctxAdmin, &admin.Empty{})
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -149,8 +176,8 @@ func main() {
 		orders.ChangeOrder(w, r, db, client, clientAuth, bot)
 	})))
 
-	mux.Handle("/get-orders-by-parametr", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		orders.GetOrdersByParametr(w, r, db, rdb, client)
+	mux.Handle("/get-orders-by-user", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		orders.GetOrdersByParametr(w, r, db, rdb, client, clientAuth)
 	})))
 
 	mux.Handle("/get-orders-by-date-from-user", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -163,6 +190,10 @@ func main() {
 
 	mux.Handle("/get-orders-one-date", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		orders.GetOrdersOneDate(w, r, db, rdb, client)
+	})))
+
+	mux.Handle("/get-order-by-id", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		orders.GetOrderById(w, r, db, client)
 	})))
 
 	http.ListenAndServe(":8080", mux)

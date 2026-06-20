@@ -53,7 +53,7 @@ func ForRowsAfterQuery(rows *sql.Rows, ordersMap map[int]*models.FullOrder, prod
 		var fullOrder models.FullOrder
 		var product models.Products
 		if err := rows.Scan(&fullOrder.OrderId, &fullOrder.UserId, &fullOrder.Email, &fullOrder.Phone,
-			&fullOrder.Status, &fullOrder.TotalPrice, &fullOrder.CreatedAt,
+			&fullOrder.Status, &fullOrder.TotalPrice, &fullOrder.CreatedAt, &fullOrder.UpdatedAt,
 			&product.ProductId, &product.Quantity, &product.Price); err != nil {
 			return fmt.Errorf("error scanning row: %w", err)
 		}
@@ -138,4 +138,18 @@ func FormatOrderMessage(o models.FullOrder, isCreate bool) string {
 		productsText,
 		formatTime(o.CreatedAt),
 	)
+}
+
+func StringOrEmpty(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}
+
+func Int64OrZero(i *int) int64 {
+	if i == nil {
+		return 0
+	}
+	return int64(*i)
 }

@@ -13,9 +13,9 @@ require (
 
 require (
 	github.com/AndreyLebedev1998/admin-grpc v1.0.2 // indirect
-	github.com/AndreyLebedev1998/auth-grpc v1.0.5 // indirect
+	github.com/AndreyLebedev1998/auth-grpc v1.0.8 // indirect
 	github.com/AndreyLebedev1998/shop-gRPC-orders v1.0.4 // indirect
-	github.com/AndreyLebedev1998/shop-gRPC-product v1.3.8 // indirect
+	github.com/AndreyLebedev1998/shop-gRPC-product v1.4.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/go-telegram-bot-api/telegram-bot-api v4.6.4+incompatible // indirect

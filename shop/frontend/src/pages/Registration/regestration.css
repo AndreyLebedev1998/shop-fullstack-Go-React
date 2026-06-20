@@ -1,0 +1,13 @@
+.registration-page__registration-wrapper {
+    margin-top: 10px;
+}
+
+.required__field-reg {
+    position: relative;
+    top: 5px;
+    padding: 5px;
+}
+
+.not-required__field-reg {
+    padding-left: 15px;
+}

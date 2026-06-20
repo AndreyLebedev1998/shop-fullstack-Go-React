@@ -3,6 +3,7 @@ package main
 import (
 	"authorization-microservice/cors"
 	autentification "authorization-microservice/endpoints/autentification"
+	"authorization-microservice/endpoints/change"
 	"authorization-microservice/endpoints/recovery"
 	"authorization-microservice/endpoints/telegram"
 	grpc_package "authorization-microservice/gRPC"
@@ -137,6 +138,10 @@ func main() {
 
 	mux.Handle("/recovery-password", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		recovery.RecoveryPassword(w, r, db)
+	})))
+
+	mux.Handle("/change-user", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		change.ChangeAccount(w, r, db)
 	})))
 
 	http.ListenAndServe(":8080", mux)

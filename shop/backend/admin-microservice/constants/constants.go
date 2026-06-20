@@ -1,5 +1,7 @@
 package constants
 
+import "os"
+
 type OrderStatus string
 
 type OrderStatusPaid string
@@ -18,3 +20,5 @@ const (
 	OrderStatusPaidCompleted    OrderStatusPaid = "paid"
 	OrderStatusPaidNotCompleted OrderStatusPaid = "not_paid"
 )
+
+var JwtKey = []byte(os.Getenv("JWT_SECRET"))

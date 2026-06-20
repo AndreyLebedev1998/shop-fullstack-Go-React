@@ -2,6 +2,7 @@ package main
 
 import (
 	"admin-microservice/cors"
+	authAdmin "admin-microservice/endpoints/auth-for-admin"
 	"admin-microservice/endpoints/change-products-and-categories"
 	"admin-microservice/endpoints/create-products-and-categories"
 	"admin-microservice/endpoints/email"
@@ -41,7 +42,6 @@ func main() {
 	if err = db.Ping(); err != nil {
 		panic(err)
 	}
-	fmt.Println(db)
 
 	var ctx = context.Background()
 
@@ -201,6 +201,34 @@ func main() {
 
 	mux.Handle("/change-email-conn-data", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		email.AddAccountDataForEmail(w, r, db)
+	})))
+
+	mux.Handle("/registration-admin", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authAdmin.Register(w, r, db)
+	})))
+
+	mux.Handle("/authorization-admin", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authAdmin.Login(w, r, db)
+	})))
+
+	mux.Handle("/get-admin", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authAdmin.GetAdmin(w, r, db)
+	})))
+
+	mux.Handle("/create-product-mass", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		create.ReadXLSXAndSaveImages(w, r, db, clientProduct)
+	})))
+
+	mux.Handle("/create-subcategory", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		create.CreateSubcategory(w, r, clientProduct)
+	})))
+
+	mux.Handle("/change-casubcategorytegory", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		change.ChangeSubcategory(w, r, clientProduct)
+	})))
+
+	mux.Handle("/remove-subcategory", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		remove.RemoveSubcategory(w, r, clientProduct)
 	})))
 
 	http.ListenAndServe(":8080", mux)

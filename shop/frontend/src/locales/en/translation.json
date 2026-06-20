@@ -1,0 +1,79 @@
+{
+    "header": {
+        "offcanvas": {
+            "categories": {
+                "Carbonated drinks": "Carbonated drinks",
+                "Energy drinks": "Energy drinks",
+                "Soda": "Soda"
+            }
+        },
+        "links": {
+            "home": "Home",
+            "orders": "Orders",
+            "about_us": "About us",
+            "profile": "Profile"
+        }
+    },
+    "subcategories": {
+        "Energy drinks": "Energy drinks",
+        "Soda": "Soda",
+        "Mineral water": "Mineral water",
+        "Lemonades": "Lemonades",
+        "Tonics": "Tonics",
+        "Fruit water": "Fruit water"
+    },
+    "auth": {
+        "name": "Name",
+        "email": "Email",
+        "password": "Password",
+        "phone": "Phone",
+        "or": "Or",
+        "and": "And",
+        "auth": "Authorization",
+        "reg": "Registration",
+        "lastname": "Lastname",
+        "error_auth": "Incorrect login or password",
+        "required_fields": "Please fill in all required fields",
+        "reg_incorrect_fileds": "Incorrect name or email or phone number",
+        "small_password": "The password must be at least 5 characters long",
+        "reg_success": "You have registered successfully.",
+        "error_reg": "Registration error. Try again later.",
+        "email_or_password_or_phone_is_busy": "Email or password or phone is busy",
+        "server_error": "Server error. Please try again later",
+        "send_code_telegram": "Send code to Telegram",
+        "send_code_email": "Send code to Mail",
+        "forgot_your_password": "Forgot your password?",
+        "only_if_telegram_is_linked": "Only if Telegram is linked",
+        "error_send_code": "Error sending code. Try again later.",
+        "code_sent_successfully": "Code sent successfully",
+        "expectation_one_minute": "The next code can be sent in one minute.",
+        "not_linked_telegram": "User not found or Telegram not linked",
+        "enter_the_code": "Enter the code",
+        "enter_the_code_six_symbols": "Enter the code. 6 symbols",
+        "close": "Close",
+        "send": "Send",
+        "error_code_mathing": "Error. Please try again later.",
+        "new_password": "New password. Minimum 5 characters.",
+        "password_confirmation": "Password confirmation"
+    },
+    "orders": {
+        "order": "order",
+        "warn_orders": "Please log in to see your orders.",
+        "add_to_cart": "add to cart",
+        "error_receiving_orders": "Error receiving orders",
+        "name": "Name",
+        "email": "Email",
+        "phone": "Phone",
+        "status": "Status",
+        "status_type": {
+            "pending": "pending"
+        },
+        "total_amount": "Total amount",
+        "your_order": "Your order",
+        "quantity": "Quantity",
+        "or": "Or",
+        "place_order": "Place order",
+        "cart_is_empty": "The cart is empty",
+        "order_error": "Email or phone number must be filled in correctly"
+    }
+}

@@ -1,58 +1,30 @@
-.calorie-tracker {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
+.shop {
+  height: 100%;
+  position: relative;
 }
 
-
-.header {
-  width: 100%;
-  background: linear-gradient(135deg, #6a8ed9, #879ee8);
-  padding: 15px 0;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+.required__field {
+  color: red;
 }
 
-.header-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
-
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.bi-cart {
+  position: fixed;
+  right: 5%;
+  bottom: 5%;
+  font-size: 24px;
+  cursor: pointer;
 }
 
-.logo {
-  font-size: 22px;
-  font-weight: 700;
-  color: white;
-  letter-spacing: 0.5px;
-}
-
-.nav {
-  display: flex;
-  gap: 20px;
-}
-
-.nav a {
-  color: white;
-  text-decoration: none;
-  font-size: 16px;
-  padding: 8px 14px;
-  border-radius: 6px;
-  transition: 0.2s ease-in-out;
-}
-
-.nav a:hover {
-  background-color: rgba(255, 255, 255, 0.2);
-  transform: translateY(-2px);
-}
-
-.nav a.active {
-  background-color: rgba(255, 255, 255, 0.35);
-}
-
-.main {
-  flex: 1;
-  overflow-y: auto;
+.quantity-in-cart {
+  background-color: red;
+  color: #fff;
+  width: 20px;
+  height: 20px;
+  line-height: 20px;
+  display: inline-block;
+  text-align: center;
+  font-size: 12px;
+  border-radius: 50%;
+  position: relative;
+  bottom: 15px;
 }

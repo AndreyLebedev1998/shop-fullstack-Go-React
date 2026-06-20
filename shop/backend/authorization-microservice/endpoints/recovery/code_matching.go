@@ -27,13 +27,13 @@ func CodeMatching(w http.ResponseWriter, r *http.Request, db *sql.DB, rdb *redis
 		return
 	}
 
-	var grpcParam = &auth.ParamUser{
+	var paramUser = &auth.ParamUser{
 		Email: dateRecovery.Email,
 		Phone: dateRecovery.Phone,
 		Id:    0,
 	}
 
-	getParamForQuery := helpers.GetParamUser(grpcParam)
+	getParamForQuery := helpers.GetParamUser(paramUser)
 
 	ip := helpers.GetClientIP(r)
 

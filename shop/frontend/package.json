@@ -10,9 +10,19 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@reduxjs/toolkit": "^2.11.2",
+    "bootstrap": "^5.3.8",
+    "bootstrap-icons": "^1.13.1",
+    "country-flag-icons": "^1.6.17",
+    "i18next": "^26.2.0",
     "react": "^19.2.0",
+    "react-bootstrap": "^2.10.10",
     "react-dom": "^19.2.0",
-    "react-router-dom": "^7.10.1"
+    "react-i18next": "^17.0.8",
+    "react-imask": "^7.6.1",
+    "react-redux": "^9.3.0",
+    "react-router-dom": "^7.15.0",
+    "swiper": "^12.1.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

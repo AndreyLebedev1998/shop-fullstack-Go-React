@@ -72,12 +72,14 @@ func (s *Server) UpdateProductQuantityByIds(ctx context.Context, products *produ
 }
 
 func (s *Server) CreateProduct(ctx context.Context, newProduct *product.NewProduct) (*product.ReturnNewProduct, error) {
-	query := `INSERT INTO products (product_name, price, category_id, image_url, availability_of_pieces) VALUES ($1, $2, $3, $4, $5) RETURNING id`
+	query := `INSERT INTO products (product_name, price, category_id, image_url, availability_of_pieces, subcategory_id) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (product_name)
+			  DO UPDATE SET category_id = EXCLUDED.category_id, price = EXCLUDED.price, image_url = EXCLUDED.image_url, availability_of_pieces = EXCLUDED.availability_of_pieces, 
+			  subcategory_id = EXCLUDED.subcategory_id RETURNING id`
 	var id int
 
-	err := s.DB.QueryRow(query, newProduct.ProductName, newProduct.Price, newProduct.CategoryId, newProduct.ImageUrl, newProduct.AvailabilityOfPieces).Scan(&id)
+	err := s.DB.QueryRow(query, newProduct.ProductName, newProduct.Price, newProduct.CategoryId, newProduct.ImageUrl, newProduct.AvailabilityOfPieces, newProduct.SubcategoryId).Scan(&id)
 	if err != nil {
-		return nil, errors.New("error INSERT INTO products")
+		return nil, errors.New(err.Error())
 	}
 
 	return &product.ReturnNewProduct{
@@ -87,6 +89,7 @@ func (s *Server) CreateProduct(ctx context.Context, newProduct *product.NewProdu
 		CategoryId:           newProduct.CategoryId,
 		ImageUrl:             newProduct.ImageUrl,
 		AvailabilityOfPieces: newProduct.AvailabilityOfPieces,
+		SubcategoryId:        newProduct.SubcategoryId,
 	}, nil
 }
 
@@ -102,7 +105,7 @@ func (s *Server) CreateCategory(ctx context.Context, category_name *product.NewC
 
 	return &product.ReturnNewCategory{
 		Id:           category_id,
-		CategoryName: category_name.GetCategoryName(),
+		CategoryName: category_name.CategoryName,
 	}, nil
 }
 
@@ -128,13 +131,13 @@ func (s *Server) ChangeCategory(ctx context.Context, category *product.ReturnNew
 
 	rows, err := s.DB.Exec(query, category.CategoryName, category.Id)
 	if err != nil {
-		return nil, fmt.Errorf("error update product")
+		return nil, fmt.Errorf("error update category")
 	}
 
 	rowUpdated, _ := rows.RowsAffected()
 
 	if rowUpdated != 1 {
-		return nil, fmt.Errorf("product is not defined")
+		return nil, fmt.Errorf("category is not defined")
 	}
 
 	return category, nil
@@ -162,6 +165,77 @@ func (s *Server) RemoveProduct(ctx context.Context, productId *product.ProductId
 
 func (s *Server) RemoveCategory(ctx context.Context, categoryId *product.CategoryId) (*product.RemoveMessage, error) {
 	query := "DELETE FROM categories WHERE id = $1"
+
+	rows, err := s.DB.Exec(query, categoryId.Id)
+	if err != nil {
+		return nil, fmt.Errorf("error remove category")
+	}
+
+	rowsRemove, _ := rows.RowsAffected()
+	if rowsRemove != 1 {
+		return nil, fmt.Errorf("category is not defined")
+	}
+
+	return &product.RemoveMessage{
+		Id:      categoryId.Id,
+		Status:  true,
+		Message: "category remove successfully",
+	}, nil
+}
+
+func (s *Server) GetProductName(ctx context.Context, product_name *product.ProductName) (*product.ReturnResult, error) {
+	query := "SELECT product_name FROM products WHERE product_name = $1"
+
+	var productName string
+
+	err := s.DB.QueryRowContext(ctx, query, product_name.ProductName).Scan(&productName)
+
+	if err == sql.ErrNoRows {
+		return &product.ReturnResult{Result: false}, nil
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("%v", err.Error())
+	}
+
+	return &product.ReturnResult{Result: true}, nil
+}
+
+func (s *Server) CreateSubcategory(ctx context.Context, newSubcategory *product.NewSubcategory) (*product.ReturnNewSubcategory, error) {
+	query := "INSERT INTO subcategories (category_name, category_id) VALUES ($1, $2) RETURNING id"
+
+	var category_id int64
+
+	err := s.DB.QueryRow(query, newSubcategory.CategoryName, newSubcategory.CategoryId).Scan(&category_id)
+	if err != nil {
+		return nil, fmt.Errorf("error insert into subcategories")
+	}
+
+	return &product.ReturnNewSubcategory{
+		Id:           category_id,
+		CategoryName: newSubcategory.CategoryName,
+	}, nil
+}
+
+func (s *Server) ChangeSubcategory(ctx context.Context, subcategory *product.ReturnNewSubcategory) (*product.ReturnNewSubcategory, error) {
+	query := "UPDATE subcategories SET category_name = $1, category_id = $2 WHERE id = $3"
+
+	rows, err := s.DB.Exec(query, subcategory.CategoryName, subcategory.CategoryId, subcategory.Id)
+	if err != nil {
+		return nil, fmt.Errorf("error update subcategories")
+	}
+
+	rowUpdated, _ := rows.RowsAffected()
+
+	if rowUpdated != 1 {
+		return nil, fmt.Errorf("subcategory is not defined")
+	}
+
+	return subcategory, nil
+}
+
+func (s *Server) RemoveSubcategory(ctx context.Context, categoryId *product.CategoryId) (*product.RemoveMessage, error) {
+	query := "DELETE FROM subcategories WHERE id = $1"
 
 	rows, err := s.DB.Exec(query, categoryId.Id)
 	if err != nil {

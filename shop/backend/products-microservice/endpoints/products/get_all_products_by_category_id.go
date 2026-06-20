@@ -3,6 +3,7 @@ package products
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"products-microservice/models"
 	"strconv"
@@ -20,7 +21,7 @@ func GetAllProductsByCategoryId(w http.ResponseWriter, r *http.Request, db *sql.
 	var category_id string
 	var ctx = r.Context()
 	var products []models.Product
-	var idStr string = r.URL.Query().Get("id")
+	var idStr string = r.URL.Query().Get("category_id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil || id < 0 {
 		http.Error(w, "Invalid category_id", http.StatusBadRequest)
@@ -45,12 +46,12 @@ func GetAllProductsByCategoryId(w http.ResponseWriter, r *http.Request, db *sql.
 		}
 	}
 
-	var query string = "SELECT * FROM products WHERE category_id = $1"
+	var query string = "SELECT products.id, product_name, products.category_id, price, image_url, availability_of_pieces, subcategory_id FROM products JOIN subcategories ON products.subcategory_id = subcategories.id  WHERE products.category_id = $1"
 
 	rows, err := db.QueryContext(ctx, query, category_id)
 
 	if err != nil {
-		http.Error(w, "Error while querying the database", http.StatusInternalServerError)
+		http.Error(w, "Server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -59,10 +60,11 @@ func GetAllProductsByCategoryId(w http.ResponseWriter, r *http.Request, db *sql.
 	for rows.Next() {
 		var product models.Product
 
-		err := rows.Scan(&product.Id, &product.ProductName, &product.CategoryId, &product.Price, &product.ImageUrl)
+		err := rows.Scan(&product.Id, &product.ProductName, &product.CategoryId, &product.Price, &product.ImageUrl, &product.AvailabilityOfPieces, &product.SubcategoryId)
 
 		if err != nil {
-			http.Error(w, "Server error", http.StatusInternalServerError)
+			fmt.Println(err)
+			http.Error(w, "Error while querying the database", http.StatusInternalServerError)
 			return
 		}
 

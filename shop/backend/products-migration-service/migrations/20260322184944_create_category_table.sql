@@ -4,8 +4,5 @@ CREATE TABLE categories (
     category_name text
 );
 
-INSERT INTO categories (category_name)
-VALUES ('energy drinks');
-
 -- +goose Down
 DROP TABLE categories;

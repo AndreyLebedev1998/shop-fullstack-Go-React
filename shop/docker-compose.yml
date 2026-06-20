@@ -5,8 +5,8 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - /frontend/node_modules
       - ./frontend:/frontend
+      - /frontend/node_modules
 
   products-db:
     image: postgres:15-alpine
@@ -172,6 +172,7 @@ services:
       PRODUCTS_SERVICE_URL: http://products-microservice:8080
       ORDERS_SERVICE_URL: http://orders-microservice:8080
       DB_CONN: "user=postgres password=mypasswordAdmin dbname=admin_db host=admin-db sslmode=disable"
+      JWT_SECRET: 8fhj3k4j5h2k3j4h5k6j7h8k9j2h3j4k5h6j7h8k9j0k1j2h3g4f5d6s7a8s9d0f
     volumes:
       - ./backend/admin-microservice:/admin-microservice
 

@@ -54,12 +54,20 @@ func CreateProduct(w http.ResponseWriter, r *http.Request, client product.Produc
 		return
 	}
 
+	subcategoryIdStr := r.FormValue("subcategory_id")
+	subcategoryId, err := strconv.Atoi(subcategoryIdStr)
+	if err != nil || quantity < 0 {
+		http.Error(w, "Invalid subcategory id", http.StatusBadRequest)
+		return
+	}
+
 	var newProduct models.NewProduct = models.NewProduct{
 		ProductName:          nameStr,
 		Price:                price,
 		CategoryId:           categoryId,
 		ImageUrl:             nil,
 		AvailabilityOfPieces: quantity,
+		SubcategoryId:        subcategoryId,
 	}
 
 	var savedFilePath string
@@ -113,6 +121,7 @@ func CreateProduct(w http.ResponseWriter, r *http.Request, client product.Produc
 		CategoryId:           int64(newProduct.CategoryId),
 		ImageUrl:             imageURL,
 		AvailabilityOfPieces: int64(newProduct.AvailabilityOfPieces),
+		SubcategoryId:        int64(newProduct.SubcategoryId),
 	}
 	ctx := r.Context()
 

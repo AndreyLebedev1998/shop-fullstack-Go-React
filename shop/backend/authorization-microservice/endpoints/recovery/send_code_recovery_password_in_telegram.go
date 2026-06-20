@@ -52,6 +52,7 @@ func SendCodeRecoveryPasswordInTelegram(w http.ResponseWriter, r *http.Request, 
 
 	attempts, err := rdb.Incr(ctx, key).Result()
 	if err != nil && err != redis.Nil {
+		fmt.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -67,7 +68,7 @@ func SendCodeRecoveryPasswordInTelegram(w http.ResponseWriter, r *http.Request, 
 	}
 
 	if recoveryPasswordData.Email != "" || recoveryPasswordData.Phone != "" {
-		var chatId int64
+		var chatId *int64
 		var userId int
 		queryGetChatId := "SELECT id, chat_id_telegram FROM users "
 		if recoveryPasswordData.Email != "" {
@@ -81,16 +82,30 @@ func SendCodeRecoveryPasswordInTelegram(w http.ResponseWriter, r *http.Request, 
 		err := db.QueryRowContext(ctx, queryGetChatId, getParamForQuery).Scan(&userId, &chatId)
 
 		if err == sql.ErrNoRows {
-			http.Error(w, "The Telegram bot is not linked to this user", http.StatusBadRequest)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]string{
+				"error": "The Telegram bot is not linked to this user",
+			})
 			return
 		}
+
+		if chatId == nil || *chatId == 0 {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]string{
+				"error": "The Telegram bot is not linked to this user",
+			})
+			return
+		}
+
 		if err != nil {
 			fmt.Println(err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		if chatId != 0 {
+		if *chatId != 0 {
 			code := helpers.SixRandomNumbers()
 
 			queryUpdateCode := "UPDATE users SET code_recovery = $1, code_recovery_expires_at = NOW() + INTERVAL '10 minutes' WHERE id = $2"
@@ -114,7 +129,9 @@ func SendCodeRecoveryPasswordInTelegram(w http.ResponseWriter, r *http.Request, 
 				fmt.Println(err)
 			}
 
-			msg := tgbotapi.NewMessage(chatId, code)
+			message := fmt.Sprintf("Ваш код для восстановления пароля - %s", code)
+
+			msg := tgbotapi.NewMessage(*chatId, message)
 			_, err = bot.Send(msg)
 			if err != nil {
 				log.Println(err)

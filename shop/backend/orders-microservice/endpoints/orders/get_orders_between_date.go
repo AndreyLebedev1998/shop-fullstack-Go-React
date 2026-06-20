@@ -50,7 +50,7 @@ func GetOrdersByUserBetweenDate(w http.ResponseWriter, r *http.Request, db *sql.
 		}
 	}
 
-	var query string = `SELECT orders.id as order_id, user_id, email, phone, status, total_price, created_at, 
+	var query string = `SELECT orders.id as order_id, user_id, email, phone, status, total_price, created_at, updated_at
 						product_id, quantity, order_items.price
 						FROM orders 
 						JOIN order_items ON orders.id = order_items.order_id `

@@ -1,0 +1,29 @@
+.products-subcategories {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    padding: 20px;
+}
+
+.product-subcategories {
+    width: 150px !important;
+    display: flex;
+    flex-direction: column;
+}
+
+.products-subcategories__img-product {
+    height: 140px;
+    object-fit: contain;
+    padding: 5px;
+}
+
+.products-subcategories .card-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    padding: 10px;
+}
+
+.product-actions {
+    margin-top: auto;
+}

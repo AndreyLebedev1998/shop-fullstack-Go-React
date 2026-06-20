@@ -9,76 +9,82 @@ import (
 	"orders-microservice/models"
 	"time"
 
+	"github.com/AndreyLebedev1998/auth-grpc"
 	product "github.com/AndreyLebedev1998/shop-gRPC-product"
 	"github.com/redis/go-redis/v9"
 )
 
-func GetOrdersByParametr(w http.ResponseWriter, r *http.Request, db *sql.DB, rdb *redis.Client, client product.ProductsServiceClient) {
-	if r.Method != http.MethodGet {
+func GetOrdersByParametr(w http.ResponseWriter, r *http.Request, db *sql.DB, rdb *redis.Client, client product.ProductsServiceClient, clientAuth auth.AuthServiceClient) {
+	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	var emailParametr string = r.URL.Query().Get("email")
-	var phoneParamert string = r.URL.Query().Get("phone")
-	var userIdParametr string = r.URL.Query().Get("user_id")
+	var token models.Token
+
+	if err := json.NewDecoder(r.Body).Decode(&token); err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+
 	var ctx = r.Context()
+
+	respUser, err := clientAuth.GetUserFromToken(ctx, &auth.Token{
+		Token: token.Token,
+	})
+
+	if err != nil {
+		http.Error(w, "Error get user id", http.StatusInternalServerError)
+		return
+	}
+
+	var userId int64
+
+	if respUser != nil {
+		userId = respUser.UserId
+	} else {
+		http.Error(w, "Error get user id", http.StatusInternalServerError)
+		return
+	}
+
 	var fullOrders []models.FullOrder
 	ordersMap := make(map[int]*models.FullOrder)
 	var productIDsSet = make(map[int]struct{})
 
-	cacheKey := "orders:user"
+	cacheKey := fmt.Sprintf("orders:orders:user_id:%d", userId)
 
 	val, err := rdb.Get(ctx, cacheKey).Result()
 	if err == nil {
 		if json.Unmarshal([]byte(val), &fullOrders) == nil {
-			w.Header().Add("Content-Type", "application/json")
+			w.Header().Set("Content-Type", "application/json")
 			fmt.Println("Redis")
 			json.NewEncoder(w).Encode(fullOrders)
 			return
 		}
 	}
 
-	var query string = `SELECT orders.id as order_id, user_id, email, phone, status, total_price, created_at, 
+	var query string = `SELECT orders.id as order_id, user_id, email, phone, status, total_price, created_at, updated_at,
 						product_id, quantity, order_items.price
 						FROM orders 
-						JOIN order_items ON orders.id = order_items.order_id`
+						JOIN order_items ON orders.id = order_items.order_id 
+						WHERE user_id = $1`
 
-	if emailParametr != "" || phoneParamert != "" || userIdParametr != "" {
-		var params = []models.ParamsForQuery{
-			{
-				Column: "email",
-				Value:  emailParametr,
-			},
-			{
-				Column: "phone",
-				Value:  phoneParamert,
-			},
-			{
-				Column: "user_id",
-				Value:  userIdParametr,
-			},
-		}
+	rows, err := db.QueryContext(ctx, query, userId)
 
-		dynamicQuery, args := helpers.SqlQueryWithParam(params)
+	if err != nil {
+		http.Error(w, "Error while querying the database", http.StatusInternalServerError)
+		return
+	}
 
-		rows, err := db.QueryContext(ctx, query+" "+dynamicQuery, args...)
+	defer rows.Close()
 
-		if err != nil {
-			http.Error(w, "Error while querying the database", http.StatusInternalServerError)
-			return
-		}
+	if err := helpers.ForRowsAfterQuery(rows, ordersMap, productIDsSet); err != nil {
+		http.Error(w, "Server error", http.StatusInternalServerError)
+		return
+	}
 
-		defer rows.Close()
-
-		if err := helpers.ForRowsAfterQuery(rows, ordersMap, productIDsSet); err != nil {
-			http.Error(w, "Server error", http.StatusInternalServerError)
-			return
-		}
-
-		for _, order := range ordersMap {
-			fullOrders = append(fullOrders, *order)
-		}
+	for _, order := range ordersMap {
+		fullOrders = append(fullOrders, *order)
 	}
 
 	var productIDs []int64
@@ -103,20 +109,22 @@ func GetOrdersByParametr(w http.ResponseWriter, r *http.Request, db *sql.DB, rdb
 	}
 
 	for i := range fullOrders {
+		fmt.Println(fullOrders)
 		for j := range fullOrders[i].Products {
 
 			pid := int64(fullOrders[i].Products[j].ProductId)
 
 			if p, ok := productsMap[pid]; ok {
-				fullOrders[i].Products[j] = models.Products{
-					ProductId:    int(p.Id),
-					ProductName:  p.ProductName,
-					CategoryId:   int(p.CategoryId),
-					CategoryName: p.CategoryName,
-					ImageUrl:     &p.ImageUrl,
-				}
+				fullOrders[i].Products[j].ProductName = p.ProductName
+				fullOrders[i].Products[j].CategoryId = int(p.CategoryId)
+				fullOrders[i].Products[j].CategoryName = p.CategoryName
+				fullOrders[i].Products[j].ImageUrl = &p.ImageUrl
 			}
 		}
+	}
+
+	if fullOrders == nil {
+		fullOrders = []models.FullOrder{}
 	}
 
 	bytes, _ := json.Marshal(fullOrders)

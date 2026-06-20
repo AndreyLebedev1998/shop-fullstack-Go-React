@@ -252,21 +252,20 @@ func ChangeOrder(w http.ResponseWriter, r *http.Request, db *sql.DB, client prod
 		Phone: userPhone,
 	})
 
-	fmt.Println(respAuth)
-
 	if err != nil {
 		fmt.Println(err)
 		fmt.Println("Ошибка отправки заказа в Telegram")
 	} else {
-		orderTg := helpers.FormatOrderMessage(fullOrder, false)
+		if bot != nil {
+			orderTg := helpers.FormatOrderMessage(fullOrder, false)
 
-		msg := tgbotapi.NewMessage(respAuth.ChatId, orderTg)
-		msg.ParseMode = "HTML"
-		res, err := bot.Send(msg)
-		if err != nil {
-			log.Println(err)
+			msg := tgbotapi.NewMessage(respAuth.ChatId, orderTg)
+			msg.ParseMode = "HTML"
+			_, err := bot.Send(msg)
+			if err != nil {
+				log.Println(err)
+			}
 		}
-		fmt.Println(res)
 	}
 
 	w.Header().Set("Content-Type", "application/json")

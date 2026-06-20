@@ -1,0 +1,77 @@
+{
+    "header": {
+        "offcanvas": {
+            "categories": {
+                "Carbonated drinks": "Газированные напитки"
+            }
+        },
+        "links": {
+            "home": "Главная",
+            "orders": "Заказы",
+            "about_us": "О нас",
+            "profile": "Профиль"
+        }
+    },
+    "subcategories": {
+        "Energy drinks": "Энергетические напитки",
+        "Soda": "Газировка",
+        "Mineral water": "Минеральная вода",
+        "Lemonades": "Лимонады",
+        "Tonics": "Тоники",
+        "Fruit water": "Фруктовая вода"
+    },
+    "auth": {
+        "name": "Имя",
+        "email": "Почта",
+        "password": "Пароль",
+        "phone": "Телефон",
+        "or": "Или",
+        "and": "И",
+        "auth": "Авторизация",
+        "reg": "Регистрация",
+        "lastname": "Фамилия",
+        "error_auth": "Неправильный логин или пароль",
+        "required_fields": "Заполните все обязательные поля",
+        "reg_incorrect_fileds": "Неккоректные имя или почта или телефон",
+        "small_password": "Пароль должен быть не менее 5 символов",
+        "reg_success": "Вы успешно зарегестрировались.",
+        "error_reg": "Ошибка регистрации. Попробуйте позже.",
+        "email_or_password_is_busy": "Почта или пароль или телефон заняты",
+        "server_error": "Ошибка сервера. Попробуйте позже",
+        "send_code_telegram": "Отправить код в телеграм",
+        "send_code_email": "Отправить код на почту",
+        "forgot_your_password": "Забыли пароль?",
+        "only_if_telegram_is_linked": "Только если привязан телеграм",
+        "error_send_code": "Ошибка отправки кода. Попробуйте позже",
+        "code_sent_successfully": "Код успешно отправлен",
+        "expectation_one_minute": "Следующий код можно отправить через одну минуту.",
+        "not_linked_telegram": "Пользователь не найден или телеграм не привязан",
+        "enter_the_code": "Введите код",
+        "enter_the_code_six_symbols": "Введите код. 6 символов",
+        "close": "Закрыть",
+        "send": "Отправить",
+        "error_code_mathing": "Ошибка. Попробуйте позже",
+        "new_password": "Новый пароль. Минимум 5 сиволов.",
+        "password_confirmation": "Подтверждение пароля"
+    },
+    "orders": {
+        "order": "Заказ",
+        "warn_orders":"Пожалуйста, авторизуйтесь, чтобы увидеть ваши заказы",
+        "add_to_cart": "в корзину",
+        "error_receiving_orders": "Ошибка получения заказов",
+        "name": "Имя",
+        "email": "Почта",
+        "phone": "Телефон",
+        "status": "Статус",
+        "status_type": {
+            "pending": "в ожидании"
+        },
+        "total_amount": "Итоговая сумма",
+        "your_order": "Ваш заказ",
+        "quantity": "Количество",
+        "or": "Или",
+        "place_order": "Заказать",
+        "cart_is_empty": "Корзина пустая",
+        "order_error": "Почта или телефон должны быть заполнены корректно"
+    }
+}

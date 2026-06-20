@@ -87,8 +87,12 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	mux.Handle("/products", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("/products-for-categories", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		products.GetAllProductsByCategoryId(w, r, db, rdb)
+	})))
+
+	mux.Handle("/products-for-subcategory", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		products.GetAllProductsBySubcategoryId(w, r, db, rdb)
 	})))
 
 	mux.Handle("/categories", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

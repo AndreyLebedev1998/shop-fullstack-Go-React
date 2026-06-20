@@ -17,7 +17,6 @@ type NewOrder struct {
 	Email      *string     `json:"email"`
 	Phone      *string     `json:"phone"`
 	Status     *string     `json:"status"`
-	TotalPrice float64     `json:"total_price"`
 	OrderItems []OrderItem `json:"order_items"`
 }
 
@@ -116,4 +115,8 @@ type OrderItems struct {
 type TimeStampOrder struct {
 	CreatedAt string `json:"created_at"`
 	UpdatedAt string `json:"updated_at"`
+}
+
+type Token struct {
+	Token string `json:"token"`
 }

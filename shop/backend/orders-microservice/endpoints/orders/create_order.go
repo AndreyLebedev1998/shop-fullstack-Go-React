@@ -33,22 +33,43 @@ func CreateOrder(w http.ResponseWriter, r *http.Request, db *sql.DB, client prod
 		return
 	}
 
-	if (order.Email == nil || *order.Email == "") && (order.Phone == nil || *order.Phone == "") && (order.UserId == nil || *order.UserId <= 0) {
-		http.Error(w, "Contact info dont't empty", http.StatusBadRequest)
-		return
-	}
-
+	// смотрим, чтобы были проудкты
 	if len(order.OrderItems) == 0 {
 		http.Error(w, "Order must contain items", http.StatusBadRequest)
 		return
 	}
 
+	var respUser *auth.UserInfo
+	var errUserInfo error
+
+	respUser, errUserInfo = clientAuth.GetUserFromContactInfo(ctx, &auth.ContactInfo{
+		Email:  helpers.StringOrEmpty(order.Email),
+		Phone:  helpers.StringOrEmpty(order.Phone),
+		UserId: helpers.Int64OrZero(order.UserId),
+	})
+
+	fmt.Println(respUser)
+
+	if errUserInfo != nil {
+		fmt.Printf("%v\n", errUserInfo)
+		return
+	}
+
+	if respUser != nil {
+		userId := int(respUser.UserId)
+		order.Email = &respUser.Email
+		order.UserId = &userId
+		order.Phone = &respUser.Phone
+	}
+
 	var product_ids []int
 
+	// собираем id проудктов для их получения через сервис проудктов
 	for _, p := range order.OrderItems {
 		product_ids = append(product_ids, p.ProductId)
 	}
 
+	// запрос на поулчение продуктов
 	resp, err := client.GetProductsByIds(ctx, &product.GetProductsRequest{
 		ProductIds: helpers.ConvertIntToInt64(product_ids),
 	})
@@ -58,31 +79,36 @@ func CreateOrder(w http.ResponseWriter, r *http.Request, db *sql.DB, client prod
 		return
 	}
 
+	// проставление дефолтного статуса, если он отсутствует
 	if order.Status == nil || *order.Status != "pending" {
 		val := "pending"
 		order.Status = &val
 	}
 
+	// запрос на создание заказа
 	queryOrder := `
 		INSERT INTO orders (user_id, email, phone, status, total_price)
 		VALUES ($1, $2, $3, $4, $5)
 		RETURNING id
 	`
 
+	// запрос на создание элементов заказа
 	queryOrderItems := `
 		INSERT INTO order_items (order_id, product_id, quantity, price)
 		VALUES ($1, $2, $3, $4)
 	`
 
-	var productsFromOrder []models.OrderItem
-	var problemProducts []models.ProblemProducts
-	var productsInOrder []models.ProductsForOrder
+	var productsFromOrder []models.OrderItem      // продукты в заказе
+	var problemProducts []models.ProblemProducts  // проблемные продукты(если пользователь заказал больше, чем есть ан складе)
+	var productsInOrder []models.ProductsForOrder // тоже продукты в заказе
 	for _, product := range order.OrderItems {
 		productsFromOrder = append(productsFromOrder, product)
 	}
 
 	for i, product := range resp.Products {
 		if product.AvailabilityOfPieces < int64(productsFromOrder[i].Quantity) {
+			// сравниваем колличество продуктов на складе с тем, что есть в заказе
+			// если в заказе больше, то добавляем продукт в слайс проблемных продуктов
 			var problemProduct models.ProblemProducts
 			problemProduct.AvailabilityOfPieces = int(product.AvailabilityOfPieces)
 			problemProduct.ImageUrl = &product.ImageUrl
@@ -101,9 +127,11 @@ func CreateOrder(w http.ResponseWriter, r *http.Request, db *sql.DB, client prod
 		productInOrder.Quantity = int(product.AvailabilityOfPieces)
 		productInOrder.Price = product.Price
 
+		// добавляем продкт в слайс (продукты в заказе)
 		productsInOrder = append(productsInOrder, productInOrder)
 	}
 
+	// если есть хоть один проблемный продукт, то заказ не создаем, а возврааем эти проудкты с указанием остатка
 	if len(problemProducts) > 0 {
 		problemProductsMsg := map[string]interface{}{
 			"message":          "Sorry, there were no products in stock",
@@ -113,6 +141,7 @@ func CreateOrder(w http.ResponseWriter, r *http.Request, db *sql.DB, client prod
 		return
 	}
 
+	// считаем конечную цену заказа
 	totalPrice := 0.0
 	for _, p := range productsInOrder {
 		for _, product := range order.OrderItems {
@@ -123,6 +152,7 @@ func CreateOrder(w http.ResponseWriter, r *http.Request, db *sql.DB, client prod
 		}
 	}
 
+	// объявление транзакции
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		http.Error(w, "Database error", http.StatusInternalServerError)
@@ -134,6 +164,7 @@ func CreateOrder(w http.ResponseWriter, r *http.Request, db *sql.DB, client prod
 
 	var newOrderId models.NewOrderId
 
+	// создаем заказ
 	err = tx.QueryRowContext(ctx, queryOrder,
 		order.UserId,
 		order.Email,
@@ -147,6 +178,7 @@ func CreateOrder(w http.ResponseWriter, r *http.Request, db *sql.DB, client prod
 		return
 	}
 
+	// обновляем конечную цену
 	_, err = tx.ExecContext(ctx, `
 		UPDATE orders SET total_price = $1 WHERE id = $2
 	`, totalPrice, newOrderId.Id)
@@ -156,8 +188,10 @@ func CreateOrder(w http.ResponseWriter, r *http.Request, db *sql.DB, client prod
 		return
 	}
 
+	// добавляем в базе элементы заказа
 	for _, item := range order.OrderItems {
 		for _, p := range productsInOrder {
+			// проходимся по продуктам в заказе  и по слайсу проудктов в заказе, на каждой итерации сравниваем id и добавляем элемент заказа в базу
 			if item.ProductId == p.Id {
 				_, err = tx.ExecContext(ctx, queryOrderItems,
 					newOrderId.Id,
@@ -174,106 +208,42 @@ func CreateOrder(w http.ResponseWriter, r *http.Request, db *sql.DB, client prod
 		}
 	}
 
+	// формирование заказа, чтоыб вернуть его пользователю
 	var query string = `SELECT orders.id as order_id, user_id, email, phone, status, total_price, created_at,
 							product_id, quantity, price
 							FROM orders
-							JOIN order_items ON orders.id = order_items.order_id`
+							JOIN order_items ON orders.id = order_items.order_id
+							WHERE orders.id = $1`
 
-	var emailInOrder = order.Email
-	var phoneInOrder = order.Phone
-	var userInOrder = order.UserId
 	var products []models.Products
 	var fullOrder models.FullOrder
-	if emailInOrder != nil && *emailInOrder != "" {
-		query += " WHERE email = $1 AND order_id = $2"
-		rows, err := tx.QueryContext(ctx, query, emailInOrder, newOrderId.Id)
+	rows, err := tx.QueryContext(ctx, query, newOrderId.Id)
+	if err != nil {
+		http.Error(w, "order receiving error", http.StatusInternalServerError)
+		return
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var item models.Products
+		err := rows.Scan(
+			&fullOrder.OrderId,
+			&fullOrder.UserId,
+			&fullOrder.Email,
+			&fullOrder.Phone,
+			&fullOrder.Status,
+			&fullOrder.TotalPrice,
+			&fullOrder.CreatedAt,
+			&item.ProductId,
+			&item.Quantity,
+			&item.Price,
+		)
 		if err != nil {
-			http.Error(w, "order receiving error", http.StatusInternalServerError)
+			http.Error(w, "Error reading row", http.StatusInternalServerError)
 			return
 		}
-
-		for rows.Next() {
-			var item models.Products
-			err := rows.Scan(&fullOrder.OrderId, &fullOrder.UserId, &fullOrder.Email, &fullOrder.Phone, &fullOrder.Status,
-				&fullOrder.TotalPrice, &fullOrder.CreatedAt, &item.ProductId, &item.Quantity, &item.Price)
-
-			if err != nil {
-				http.Error(w, "Error reading row", http.StatusInternalServerError)
-				return
-			}
-			products = append(products, item)
-		}
-
-		for i := range products {
-			for _, p := range productsInOrder {
-				if products[i].ProductId == p.Id {
-					products[i].CategoryId = p.CategoryId
-					products[i].CategoryName = p.CategoryName
-					products[i].ImageUrl = p.ImageUrl
-					products[i].ProductName = p.ProductName
-				}
-			}
-		}
-	} else if phoneInOrder != nil && *phoneInOrder != "" {
-		query += " WHERE phone = $1 AND order_id = $2"
-		rows, err := tx.QueryContext(ctx, query, phoneInOrder, newOrderId.Id)
-		if err != nil {
-			http.Error(w, "order receiving error", http.StatusInternalServerError)
-			return
-		}
-
-		for rows.Next() {
-			var item models.Products
-			err := rows.Scan(&fullOrder.OrderId, &fullOrder.UserId, &fullOrder.Email, &fullOrder.Phone, &fullOrder.Status,
-				&fullOrder.TotalPrice, &fullOrder.CreatedAt, &item.ProductId, &item.Quantity, &item.Price)
-
-			if err != nil {
-				http.Error(w, "Error reading row", http.StatusInternalServerError)
-				return
-			}
-			products = append(products, item)
-		}
-
-		for i := range products {
-			for _, p := range productsInOrder {
-				if products[i].ProductId == p.Id {
-					products[i].CategoryId = p.CategoryId
-					products[i].CategoryName = p.CategoryName
-					products[i].ImageUrl = p.ImageUrl
-					products[i].ProductName = p.ProductName
-				}
-			}
-		}
-	} else if userInOrder != nil && *userInOrder != 0 {
-		query += " WHERE user_id = $1 AND order_id = $2"
-		rows, err := tx.QueryContext(ctx, query, userInOrder, newOrderId.Id)
-		if err != nil {
-			http.Error(w, "order receiving error", http.StatusInternalServerError)
-			return
-		}
-
-		for rows.Next() {
-			var item models.Products
-			err := rows.Scan(&fullOrder.OrderId, &fullOrder.UserId, &fullOrder.Email, &fullOrder.Phone, &fullOrder.Status,
-				&fullOrder.TotalPrice, &fullOrder.CreatedAt, &item.ProductId, &item.Quantity, &item.Price)
-
-			if err != nil {
-				http.Error(w, "Error reading row", http.StatusInternalServerError)
-				return
-			}
-			products = append(products, item)
-		}
-
-		for i := range products {
-			for _, p := range productsInOrder {
-				if products[i].ProductId == p.Id {
-					products[i].CategoryId = p.CategoryId
-					products[i].CategoryName = p.CategoryName
-					products[i].ImageUrl = p.ImageUrl
-					products[i].ProductName = p.ProductName
-				}
-			}
-		}
+		products = append(products, item)
 	}
 
 	fullOrder.Products = products
@@ -283,14 +253,18 @@ func CreateOrder(w http.ResponseWriter, r *http.Request, db *sql.DB, client prod
 		return
 	}
 
+	// создание слайса, для того, чтобы вычесть со склада количество продуктов заказанные пользователем
 	grpcItems := make([]*product.UpdateProductQuantity, 0, len(productsFromOrder))
 
+	// формирование слайса
 	for _, p := range productsFromOrder {
 		grpcItems = append(grpcItems, &product.UpdateProductQuantity{
 			ProductId: int64(p.ProductId),
 			Quantity:  int64(p.Quantity),
 		})
 	}
+
+	// запрос на уменьшение кол-ва проудктов на складе заказанных пользователем
 	response, err := client.UpdateProductQuantityByIds(ctx, &product.UpdateProductQuantityRequest{
 		NewItems: grpcItems,
 		OldItems: grpcItems,
@@ -298,6 +272,7 @@ func CreateOrder(w http.ResponseWriter, r *http.Request, db *sql.DB, client prod
 		IsDelete: false,
 	})
 
+	// если ошибка, и мы не вычли со скалда проудкты заказанные пользователм, помечаем заказа как неудавшийся
 	if err != nil {
 		markOrderFailed(ctx, db, newOrderId.Id)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -325,28 +300,31 @@ func CreateOrder(w http.ResponseWriter, r *http.Request, db *sql.DB, client prod
 		userPhone = *fullOrder.Phone
 	}
 
+	// получение чата id пользователя для отправки заказа в тг
 	respAuth, err := clientAuth.GetChatIdForUser(ctx, &auth.ParamUser{
 		Email: userEmail,
 		Id:    userId,
 		Phone: userPhone,
 	})
 
-	fmt.Println(respAuth)
-
+	// отправка заказа пользователю в тг
 	if err != nil {
 		fmt.Println(err)
 		fmt.Println("Ошибка отправки заказа в Telegram")
 	} else {
-		orderTg := helpers.FormatOrderMessage(fullOrder, true)
+		if bot != nil {
+			orderTg := helpers.FormatOrderMessage(fullOrder, true)
 
-		msg := tgbotapi.NewMessage(respAuth.ChatId, orderTg)
-		msg.ParseMode = "HTML"
-		_, err := bot.Send(msg)
-		if err != nil {
-			log.Println(err)
+			msg := tgbotapi.NewMessage(respAuth.ChatId, orderTg)
+			msg.ParseMode = "HTML"
+			_, err := bot.Send(msg)
+			if err != nil {
+				log.Println(err)
+			}
 		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	// возвращаем сформированный заказ пользователю
 	json.NewEncoder(w).Encode(fullOrder)
 }
