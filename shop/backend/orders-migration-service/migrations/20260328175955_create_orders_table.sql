@@ -13,10 +13,5 @@ CREATE TABLE orders (
     CHECK (user_id IS NOT NULL OR email IS NOT NULL OR phone IS NOT NULL)
 );
 
-INSERT INTO orders (user_id, email, phone, status, total_price)
-VALUES 
-    (1, NULL, NULL, 'pending', 100.50),
-    (NULL, 'test@example.com', NULL, 'pending', 250.00);
-
 -- +goose Down
 DROP TABLE orders;

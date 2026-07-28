@@ -12,7 +12,8 @@ require (
 )
 
 require (
-	github.com/AndreyLebedev1998/shop-gRPC-orders v1.0.4 // indirect
+	github.com/AndreyLebedev1998/auth-grpc v1.0.8 // indirect
+	github.com/AndreyLebedev1998/shop-gRPC-orders v1.0.5 // indirect
 	github.com/AndreyLebedev1998/shop-gRPC-product v1.4.1 // indirect
 	github.com/KyleBanks/depth v1.2.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
@@ -22,7 +23,10 @@ require (
 	github.com/go-openapi/spec v0.20.6 // indirect
 	github.com/go-openapi/swag v0.19.15 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
+	github.com/klauspost/compress v1.15.9 // indirect
 	github.com/mailru/easyjson v0.7.6 // indirect
+	github.com/pierrec/lz4/v4 v4.1.15 // indirect
+	github.com/segmentio/kafka-go v0.4.51 // indirect
 	github.com/swaggo/files v1.0.1 // indirect
 	golang.org/x/mod v0.31.0 // indirect
 	golang.org/x/net v0.49.0 // indirect

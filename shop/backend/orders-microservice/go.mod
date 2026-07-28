@@ -10,11 +10,14 @@ require (
 require (
 	github.com/AndreyLebedev1998/admin-grpc v1.0.2 // indirect
 	github.com/AndreyLebedev1998/auth-grpc v1.0.8 // indirect
-	github.com/AndreyLebedev1998/shop-gRPC-orders v1.0.4 // indirect
+	github.com/AndreyLebedev1998/shop-gRPC-orders v1.0.5 // indirect
 	github.com/AndreyLebedev1998/shop-gRPC-product v1.4.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/go-telegram-bot-api/telegram-bot-api v4.6.4+incompatible // indirect
+	github.com/klauspost/compress v1.15.9 // indirect
+	github.com/pierrec/lz4/v4 v4.1.15 // indirect
+	github.com/segmentio/kafka-go v0.4.51 // indirect
 	github.com/technoweenie/multipartstreamer v1.0.1 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	golang.org/x/net v0.49.0 // indirect

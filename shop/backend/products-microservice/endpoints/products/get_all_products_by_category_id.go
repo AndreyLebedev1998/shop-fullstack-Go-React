@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"products-microservice/constants"
+	"products-microservice/helpers"
 	"products-microservice/models"
 	"strconv"
 	"time"
@@ -33,9 +35,25 @@ func GetAllProductsByCategoryId(w http.ResponseWriter, r *http.Request, db *sql.
 		return
 	}
 
+	var indicator string = r.URL.Query().Get("indicator")
+	isValid := helpers.IsValidIndicator(constants.Indicator(indicator))
+
+	if indicator != "" {
+		if !isValid {
+			http.Error(w, "Indicator is not valid", http.StatusBadRequest)
+			return
+		}
+	}
+
 	category_id = idStr
 
-	cacheKey := "products_by_category_id:" + idStr + "all"
+	var cacheKey string
+
+	if indicator != "" {
+		cacheKey = fmt.Sprintf("products_by_category_id:%s:indicator:%s", idStr, indicator)
+	} else {
+		cacheKey = "products_by_category_id:" + idStr + "all"
+	}
 
 	val, err := rdb.Get(ctx, cacheKey).Result()
 	if err == nil {
@@ -46,7 +64,15 @@ func GetAllProductsByCategoryId(w http.ResponseWriter, r *http.Request, db *sql.
 		}
 	}
 
-	var query string = "SELECT products.id, product_name, products.category_id, price, image_url, availability_of_pieces, subcategory_id FROM products JOIN subcategories ON products.subcategory_id = subcategories.id  WHERE products.category_id = $1"
+	var query string = `SELECT products.id, product_name, products.category_id, price, image_url, availability_of_pieces, subcategory_id, category_name FROM products 
+						JOIN categories ON products.category_id = categories.id 
+						WHERE products.category_id = $1 `
+
+	if indicator != "" {
+		query += helpers.GetSortForIndicator(constants.Indicator(indicator))
+	} else {
+		query += "ORDER BY availability_of_pieces DESC"
+	}
 
 	rows, err := db.QueryContext(ctx, query, category_id)
 
@@ -60,7 +86,7 @@ func GetAllProductsByCategoryId(w http.ResponseWriter, r *http.Request, db *sql.
 	for rows.Next() {
 		var product models.Product
 
-		err := rows.Scan(&product.Id, &product.ProductName, &product.CategoryId, &product.Price, &product.ImageUrl, &product.AvailabilityOfPieces, &product.SubcategoryId)
+		err := rows.Scan(&product.Id, &product.ProductName, &product.CategoryId, &product.Price, &product.ImageUrl, &product.AvailabilityOfPieces, &product.SubcategoryId, &product.CategoryName)
 
 		if err != nil {
 			fmt.Println(err)
@@ -71,11 +97,10 @@ func GetAllProductsByCategoryId(w http.ResponseWriter, r *http.Request, db *sql.
 		products = append(products, product)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-
 	bytes, _ := json.Marshal(products)
 	rdb.Set(ctx, cacheKey, bytes, 5*time.Minute)
 
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(products)
 }
 

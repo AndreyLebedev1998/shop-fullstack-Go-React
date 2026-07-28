@@ -48,14 +48,15 @@ func SqlQueryWithParamAndOneDate(params []models.ParamsForQuery) (string, []any)
 	return query, strParams
 }
 
-func ForRowsAfterQuery(rows *sql.Rows, ordersMap map[int]*models.FullOrder, productIDsSet map[int]struct{}) error {
+func ForRowsAfterQuery(rows *sql.Rows, ordersMap map[int]*models.FullOrder, productIDsSet map[int]struct{}) ([]int, error) {
+	var orderIDs []int
 	for rows.Next() {
 		var fullOrder models.FullOrder
 		var product models.Products
 		if err := rows.Scan(&fullOrder.OrderId, &fullOrder.UserId, &fullOrder.Email, &fullOrder.Phone,
 			&fullOrder.Status, &fullOrder.TotalPrice, &fullOrder.CreatedAt, &fullOrder.UpdatedAt,
 			&product.ProductId, &product.Quantity, &product.Price); err != nil {
-			return fmt.Errorf("error scanning row: %w", err)
+			return nil, fmt.Errorf("error scanning row: %w", err)
 		}
 
 		productIDsSet[product.ProductId] = struct{}{}
@@ -63,11 +64,12 @@ func ForRowsAfterQuery(rows *sql.Rows, ordersMap map[int]*models.FullOrder, prod
 		if o, ok := ordersMap[fullOrder.OrderId]; !ok {
 			fullOrder.Products = []models.Products{product}
 			ordersMap[fullOrder.OrderId] = &fullOrder
+			orderIDs = append(orderIDs, fullOrder.OrderId)
 		} else {
 			o.Products = append(o.Products, product)
 		}
 	}
-	return rows.Err()
+	return orderIDs, rows.Err()
 }
 
 func ConvertIntToInt64(in []int) []int64 {

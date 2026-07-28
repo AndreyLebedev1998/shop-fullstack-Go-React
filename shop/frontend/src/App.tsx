@@ -13,6 +13,9 @@ import CategoryProducts from "./pages/CategoryProducts/CategoryProducts.tsx";
 import Cart from "./pages/Cart/Cart.tsx";
 import RecoveryPassword from "./pages/RecoveryPassword/RecoveryPassword.tsx";
 import NewPassword from "./pages/NewPassword/NewPassword.tsx";
+import { getFavoriteProduucts } from "./api/products-api/products-api.ts";
+import { setFavoriteProducts } from "./store/productsSlice.ts";
+import FavoriteProducts from "./pages/FavoriteProducts/FavoriteProducts.tsx";
 
 function App() {
   const dispatch = useDispatch();
@@ -36,6 +39,12 @@ function App() {
     }
   }, [dispatch, token]);
 
+  useEffect(() => {
+    if (token) {
+      getFavoriteProduucts(token).then((data) => dispatch(setFavoriteProducts(data)))
+    }
+  }, [token])
+
   return (
     <>
       <BrowserRouter>
@@ -57,6 +66,7 @@ function App() {
             <Route path="/cart" element={<Cart />} />
             <Route path="/recovery-password" element={<RecoveryPassword />} />
             <Route path="/new-password" element={<NewPassword/>} />
+            <Route path="/favorite-products" element={<FavoriteProducts/>}/>
           </Routes>
           <Link to="/cart">
             <i className="bi bi-cart">

@@ -1,0 +1,125 @@
+.products-list-wrapper {
+    display: flex;
+    gap: 20px;
+    width: 100%;
+    overflow: hidden;
+    flex-wrap: wrap;
+}
+
+.swiper-products-subcategories {
+  width: 100%;
+  padding: 8px 4px !important;
+}
+
+.swiper-product .swiper-wrapper {
+  align-items: stretch;
+}
+
+.swiper-product-slide {
+  width: 220px;
+  height: auto;
+  display: flex;
+}
+
+.product-categories {
+  height: 100%;
+  width: 100%;
+}
+
+.product-categories .card-body,
+.product-categories .product-actions-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.product-categories .product-actions {
+  margin-top: auto;
+  min-height: 38px;
+}
+
+.product-categories__heart-wrapper {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.bi-heart, .bi-heart-fill {
+  margin-right: 5px;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.favorite-product {
+  font-size: 24px;
+  cursor: pointer;
+  transition:
+    transform 0.25s ease,
+    color 0.25s ease;
+}
+
+.favorite-product:hover {
+  transform: scale(1.15);
+}
+
+.favorite-product.active-favorite-product {
+  color: #ee2b4b;
+  animation: heart-pop 0.3s ease;
+}
+
+@keyframes heart-pop {
+  0% {
+    transform: scale(0.8);
+  }
+  40% {
+    transform: scale(1.3);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.product-categories--out-of-stock {
+  position: relative;
+}
+
+.product-categories--out-of-stock .product-categories__img-product {
+  opacity: 0.4;
+  filter: grayscale(1);
+}
+
+.out-of-stock-badge {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  z-index: 2;
+  background: rgba(33, 33, 33, 0.85);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+
+.product-categories .card-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 2.6em;
+  line-height: 1.3em;
+  font-size: 16px;
+}
+
+.swiper-product {
+  padding: 0 32px !important; /* место под стрелки слева/справа */
+}
+
+.swiper-product .swiper-button-prev {
+  left: 0;
+}
+
+.swiper-product .swiper-button-next {
+  right: 0;
+}

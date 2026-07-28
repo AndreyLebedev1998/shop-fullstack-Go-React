@@ -70,6 +70,7 @@ const Header: FC<HeaderType> = ({setChoceSubcategory}) => {
                   </Link>
                 </div>
             ))}
+              {token && <Link onClick={handleClose} className="flex-grow-1 py-2 px-3 text-decoration-none text-dark favorite-products-link" to={'/favorite-products'}>{t("header.offcanvas.favorite_products")}<i className="bi bi-heart-fill favorite-products-heart"></i></Link>}
         </Offcanvas.Body>
       </Offcanvas>
       <Navbar expand="lg" className="bg-body-tertiary header__navbar">

@@ -63,15 +63,11 @@ func GetOrderById(w http.ResponseWriter, r *http.Request, db *sql.DB, client pro
 		fullOrder.Products = append(fullOrder.Products, product)
 	}
 
-	fmt.Println(fullOrder)
-
 	var productsIds []int64
 
 	for _, p := range fullOrder.Products {
 		productsIds = append(productsIds, int64(p.ProductId))
 	}
-
-	fmt.Println(productsIds)
 
 	resp, err := client.GetProductsByIds(ctx, &product.GetProductsRequest{
 		ProductIds: productsIds,

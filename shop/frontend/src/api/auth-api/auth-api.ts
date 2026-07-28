@@ -11,10 +11,11 @@ export async function authorization(email: string, password: string, setErrorSer
             body: JSON.stringify({ email, password })
         })
 
-        if (!res.ok) {
-            setErrorServer(true)
+        if (res.status === 401) {
             setShow(true)
             throw new Error(`HTTP Error: ${res.status}`)
+        } else {
+            setErrorServer(true)
         }
 
         const data: Token = await res.json()
@@ -87,6 +88,31 @@ export async function sendCodeTg(email: string, setErrorMessage: (err: boolean) 
     }
 }
 
+export async function sendCodeEmail(email: string, setErrorEmailIsNoDefined: (err: boolean) => void, setErrorCodeMathingEmail: (err: boolean) => void): Promise<MessageType | null> {
+    const baseURL = config.AUTH_BASE_URL
+    const url = new URL('/send-code-from-email', baseURL)
+    try {
+        const res = await fetch(url.toString(), {
+            method: "POST",
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({email,})
+        })
+        if (res.status === 400) {
+            setErrorEmailIsNoDefined(true)
+            return null
+        }
+        if (res.status === 500) {
+            setErrorCodeMathingEmail(true)
+            return null
+        }
+        const data: MessageType = await res.json()
+        return data
+    } catch (error) {
+        console.error(error)
+        return null
+    }
+}
+
 export async function codeMatching(data: CodeMatchingDataType, setErrorCodeMathing: (err: boolean) => void, setShowErrorCodeMatching: (err: boolean) => void): Promise<CodeMatchingTokenType | null> {
     const baseUrl = config.AUTH_BASE_URL
     const path = '/code-mathing'
@@ -108,7 +134,7 @@ export async function codeMatching(data: CodeMatchingDataType, setErrorCodeMathi
     }
 }
 
-export async function recoveryPassword(data: RecoveryPasswordData): Promise<MessageSuccess | null> {
+export async function recoveryPassword(data: RecoveryPasswordData, setError: (err: boolean) => void): Promise<MessageSuccess | null> {
     const baseUrl = config.AUTH_BASE_URL
     const path = "/recovery-password"
     const url = new URL(path, baseUrl)
@@ -121,6 +147,7 @@ export async function recoveryPassword(data: RecoveryPasswordData): Promise<Mess
         const resData = await res.json()
         return resData
     } catch (error) {
+        setError(true)
         console.error(error)
         return null
     }

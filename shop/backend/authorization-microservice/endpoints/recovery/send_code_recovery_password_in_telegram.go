@@ -2,6 +2,7 @@ package recovery
 
 import (
 	"authorization-microservice/helpers"
+	"authorization-microservice/interfaces"
 	"authorization-microservice/models"
 	"database/sql"
 	"encoding/json"
@@ -129,10 +130,14 @@ func SendCodeRecoveryPasswordInTelegram(w http.ResponseWriter, r *http.Request, 
 				fmt.Println(err)
 			}
 
-			message := fmt.Sprintf("Ваш код для восстановления пароля - %s", code)
+			message := []byte("")
+			var notifier interfaces.Notifier = interfaces.TgBot{
+				ChatId: *chatId,
+				Bot:    bot,
+			}
 
-			msg := tgbotapi.NewMessage(*chatId, message)
-			_, err = bot.Send(msg)
+			err = notifier.Send(message)
+
 			if err != nil {
 				log.Println(err)
 				http.Error(w, "Failed to send message in Telegram", http.StatusInternalServerError)

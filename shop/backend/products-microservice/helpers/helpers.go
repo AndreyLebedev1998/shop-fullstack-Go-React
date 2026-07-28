@@ -1,7 +1,9 @@
 package helpers
 
 import (
+	"products-microservice/constants"
 	"products-microservice/models"
+	"slices"
 
 	product "github.com/AndreyLebedev1998/shop-gRPC-product"
 )
@@ -43,4 +45,29 @@ func ConvertProductsToProto(products []models.ProductWithCategory) []*product.Pr
 	}
 
 	return result
+}
+
+func getAllIndicators() []constants.Indicator {
+	return []constants.Indicator{
+		constants.IndicatorAlphabeticalOrder,
+		constants.IndicatorCheaper,
+		constants.IndicatorHigherRating,
+		constants.IndicatorMoreExpensive,
+	}
+}
+
+func IsValidIndicator(indicator constants.Indicator) bool {
+	return slices.Contains(getAllIndicators(), indicator)
+}
+
+func GetSortForIndicator(indicator constants.Indicator) string {
+	if indicator == "alphabet" {
+		return "ORDER BY product_name "
+	} else if indicator == "more_expensive" {
+		return "ORDER BY price DESC "
+	} else if indicator == "cheaper" {
+		return "ORDER BY price ASC "
+	} else {
+		return ""
+	}
 }

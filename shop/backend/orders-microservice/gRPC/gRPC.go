@@ -125,3 +125,38 @@ func (s *Server) GetOrderItems(ctx context.Context, orderId *order.OrderId) (*or
 		Items: orderItemsGRPC,
 	}, nil
 }
+
+func (s *Server) GetProductsIdsFromOrdersForUsers(ctx context.Context, userId *order.UserId) (*order.ProductIds, error) {
+	query := "SELECT product_id FROM order_items JOIN orders ON order_items.order_id = orders.id WHERE user_id = $1 LIMIT 25"
+
+	var productIds []*order.ProductId = make([]*order.ProductId, 0)
+
+	rows, err := s.DB.QueryContext(ctx, query, userId.UserId)
+
+	if err == sql.ErrNoRows {
+		return &order.ProductIds{
+			ProductsIds: productIds,
+		}, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		var productId int64
+
+		err := rows.Scan(&productId)
+		if err != nil {
+			return nil, err
+		}
+
+		productIds = append(productIds, &order.ProductId{
+			Id: productId,
+		})
+	}
+
+	return &order.ProductIds{
+		ProductsIds: productIds,
+	}, nil
+}

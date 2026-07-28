@@ -45,6 +45,10 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: myredispassword
+      SERVICE_NAME: products-microservice
+      HTTP_PORT: "8080"
+      KAFKA_BROKERS: kafka:29092
+      KAFKA_TOPIC_PRODUCTS: orders
 
   products-migration:
     build: ./backend/products-migration-service
@@ -52,6 +56,8 @@ services:
     depends_on:
       products-db:
         condition: service_healthy
+      admin-migration:
+        condition: service_completed_successfully
     environment:
       DB_CONN: "user=postgres password=mypasswordProducts dbname=products_db host=products-db sslmode=disable"
 
@@ -87,6 +93,10 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: myredispassword
+      SERVICE_NAME: orders-microservice
+      HTTP_PORT: "8080"
+      KAFKA_BROKERS: kafka:29092
+      KAFKA_TOPIC_ORDERS: orders
 
   orders-migration:
     build: ./backend/orders-migration-service
@@ -94,6 +104,8 @@ services:
     depends_on:
       orders-db:
         condition: service_healthy
+      products-migration:
+        condition: service_completed_successfully
     environment:
       DB_CONN: "user=postgres password=mypasswordOrders dbname=orders_db host=orders-db sslmode=disable"
 
@@ -182,6 +194,8 @@ services:
     depends_on:
       admin-db:
         condition: service_healthy
+      authorization-migration:
+        condition: service_completed_successfully
     environment:
       DB_CONN: "user=postgres password=mypasswordAdmin dbname=admin_db host=admin-db sslmode=disable"
 
@@ -214,32 +228,31 @@ services:
     volumes:
       - ./backend/telegram-microservice:/telegram-microservice
 
-  #zookeeper:
-    #image: confluentinc/cp-zookeeper:7.4.0
-    #restart: always
-    #environment:
-      #ZOOKEEPER_CLIENT_PORT: 2181
-      #ZOOKEEPER_TICK_TIME: 2000
-    #ports:
-      #- "2181:2181"
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    restart: always
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
 
-  #kafka:
-    #image: confluentinc/cp-kafka:7.4.0
-    #restart: always
-    #depends_on:
-      #zookeeper:
-        #condition: service_started
-    #ports:
-      #- "9092:9092"
-      #- "29092:29092"
-    #environment:
-      #KAFKA_BROKER_ID: 1
-      #KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      #KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
-      #KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      #KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      #KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      #uxft vnzv ygqt bjf
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    restart: always
+    depends_on:
+      zookeeper:
+        condition: service_started
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
 
 volumes:
   products_data:

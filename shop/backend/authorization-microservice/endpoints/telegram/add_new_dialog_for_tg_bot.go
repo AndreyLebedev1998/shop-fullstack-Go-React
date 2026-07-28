@@ -51,7 +51,6 @@ func NewDialogTgBot(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	getParamForQuery := helpers.GetParamUser(grpcParam)
 
 	if getParamForQuery == nil {
-		fmt.Println(getParamForQuery)
 		http.Error(w, "phone, user_id, and email is empty", http.StatusBadRequest)
 		return
 	}

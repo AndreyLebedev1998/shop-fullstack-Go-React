@@ -76,6 +76,12 @@
   flex-shrink: 0;
 }
 
+.cart-btn .minus,
+.cart-btn .plus {
+  position: relative;
+  bottom: 1px;
+}
+
 .cart-btn:hover {
   background: #f0ede8;
   border-color: #b0ada8;

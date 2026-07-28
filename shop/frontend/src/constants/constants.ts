@@ -1,0 +1,1 @@
+export const indicators: string[] = ["alphabet", "more_expensive", "cheaper"]

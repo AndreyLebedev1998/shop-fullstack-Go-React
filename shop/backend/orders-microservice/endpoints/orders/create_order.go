@@ -13,13 +13,14 @@ import (
 	"github.com/AndreyLebedev1998/auth-grpc"
 	product "github.com/AndreyLebedev1998/shop-gRPC-product"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/segmentio/kafka-go"
 )
 
 func markOrderFailed(ctx context.Context, db *sql.DB, orderId int) {
 	_, _ = db.ExecContext(ctx, "UPDATE orders SET status = $1 WHERE id = $2", "failed", orderId)
 }
 
-func CreateOrder(w http.ResponseWriter, r *http.Request, db *sql.DB, client product.ProductsServiceClient, clientAuth auth.AuthServiceClient, bot *tgbotapi.BotAPI) {
+func CreateOrder(w http.ResponseWriter, r *http.Request, db *sql.DB, client product.ProductsServiceClient, clientAuth auth.AuthServiceClient, bot *tgbotapi.BotAPI, writer *kafka.Writer) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -47,8 +48,6 @@ func CreateOrder(w http.ResponseWriter, r *http.Request, db *sql.DB, client prod
 		Phone:  helpers.StringOrEmpty(order.Phone),
 		UserId: helpers.Int64OrZero(order.UserId),
 	})
-
-	fmt.Println(respUser)
 
 	if errUserInfo != nil {
 		fmt.Printf("%v\n", errUserInfo)
@@ -321,6 +320,31 @@ func CreateOrder(w http.ResponseWriter, r *http.Request, db *sql.DB, client prod
 			if err != nil {
 				log.Println(err)
 			}
+		}
+	}
+
+	var msgKafka []models.ProductStats
+
+	for _, p := range fullOrder.Products {
+		var productStat models.ProductStats = models.ProductStats{
+			ProductId:     p.ProductId,
+			PurchaseCount: p.Quantity,
+		}
+		msgKafka = append(msgKafka, productStat)
+	}
+
+	payload, err := json.Marshal(msgKafka)
+
+	if err != nil {
+		log.Println("json marshal error:", err)
+	} else {
+		errKafka := writer.WriteMessages(ctx, kafka.Message{
+			Value: payload,
+			Key:   []byte("product-stats"),
+		})
+
+		if errKafka != nil {
+			fmt.Println(errKafka)
 		}
 	}
 

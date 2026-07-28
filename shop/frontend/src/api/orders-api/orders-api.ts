@@ -1,4 +1,4 @@
-import type { NewOrderType, OrderType } from "../../../types/types"
+import type { NewOrderType, OrderType, Products } from "../../../types/types"
 import { config } from "../../config"
 
 export async function getOrdersAllTime(token: string, setError: (err: boolean) => void, setShow: (show: boolean) => void): Promise<OrderType[] | null> {
@@ -35,5 +35,21 @@ export async function createOrder(newOrder: NewOrderType): Promise<OrderType | n
     } catch (error) {
         console.error(error)
         return null
+    }
+}
+
+export default async function getAlreadyBoughtProducts(token: string): Promise<Products[]> {
+    const baseURL = config.ORDERS_BASE_URL
+    const url = new URL('/allready-bought-products', baseURL)
+    try {
+        const res = await fetch(url.toString(), {
+            method: "GET",
+            headers: { 'Authorization': `Bearer ${token}` },
+        })
+        const data = await res.json()
+        return data
+    } catch (error) {
+        console.error(error)
+        return []
     }
 }

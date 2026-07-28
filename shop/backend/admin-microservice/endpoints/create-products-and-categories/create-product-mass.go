@@ -108,8 +108,21 @@ func ReadXLSXAndSaveImages(w http.ResponseWriter, r *http.Request, db *sql.DB, c
 		product.AvailabilityOfPieces = quantity
 		product.SubcategoryId = subcategoryId
 
-		uploadDir := "./uploads-products-images"
-		safeName := fmt.Sprintf("%d_%s", time.Now().UnixNano(), rand.Text())
+		// ПРОВЕРКА СУЩЕСТВОВАНИЯ ТОВАРА — теперь делается СРАЗУ, до любой работы с файлами/gRPC создания
+		respName, err := clientProduct.GetProductName(ctx, &productGRPC.ProductName{
+			ProductName: product.ProductName,
+		})
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		if respName.Result {
+			// товар уже есть в базе — полностью пропускаем строку,
+			// не трогаем ни файлы на диске, ни запись в базе (в т.ч. image_url)
+			fmt.Printf("Product %s already exists, skipping\n", product.ProductName)
+			continue
+		}
 
 		var newProductGrpc = productGRPC.NewProduct{
 			ProductName:          product.ProductName,
@@ -120,6 +133,7 @@ func ReadXLSXAndSaveImages(w http.ResponseWriter, r *http.Request, db *sql.DB, c
 			SubcategoryId:        int64(product.SubcategoryId),
 		}
 
+		// дальше выполняется ТОЛЬКО для реально новых товаров
 		if len(pictures) == 0 {
 			fmt.Println("no pictures found")
 			resp, err := clientProduct.CreateProduct(ctx, &newProductGrpc)
@@ -142,12 +156,14 @@ func ReadXLSXAndSaveImages(w http.ResponseWriter, r *http.Request, db *sql.DB, c
 			continue
 		}
 
+		uploadDir := "./uploads-products-images"
 		err = os.MkdirAll(uploadDir, 0755)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
+		safeName := fmt.Sprintf("%d_%s", time.Now().UnixNano(), rand.Text())
 		pic := pictures[0]
 		var pathPicture = fmt.Sprintf("%s.%s", safeName, pic.Extension)
 		filePath := filepath.Join(
@@ -155,20 +171,10 @@ func ReadXLSXAndSaveImages(w http.ResponseWriter, r *http.Request, db *sql.DB, c
 			pathPicture,
 		)
 
-		resp, err := clientProduct.GetProductName(ctx, &productGRPC.ProductName{
-			ProductName: product.ProductName,
-		})
+		err = os.WriteFile(filePath, pic.File, 0644)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, "WRITE ERROR: "+err.Error(), http.StatusInternalServerError)
 			return
-		}
-
-		if !resp.Result {
-			err = os.WriteFile(filePath, pic.File, 0644)
-			if err != nil {
-				http.Error(w, "WRITE ERROR: "+err.Error(), http.StatusInternalServerError)
-				return
-			}
 		}
 
 		newProductGrpc.ImageUrl = pathPicture
@@ -176,11 +182,10 @@ func ReadXLSXAndSaveImages(w http.ResponseWriter, r *http.Request, db *sql.DB, c
 		if err != nil {
 			if strings.Contains(err.Error(), "23505") || strings.Contains(err.Error(), "unique") {
 				fmt.Printf("Product %s already exists, skipping\n", product.ProductName)
+				os.Remove(filePath) // на всякий случай подчищаем файл, который только что записали
 				continue
 			}
-			if !resp.Result {
-				os.Remove(filePath)
-			}
+			os.Remove(filePath)
 			http.Error(w, "Error insert in to products width image", http.StatusInternalServerError)
 			return
 		}
@@ -198,6 +203,6 @@ func ReadXLSXAndSaveImages(w http.ResponseWriter, r *http.Request, db *sql.DB, c
 		}
 	}
 
-	w.Header().Set("Content-Type", "application-json")
+	w.Header().Set("Content-Type", "application/json") // заодно поправил опечатку: было "application-json"
 	json.NewEncoder(w).Encode(productReturns)
 }

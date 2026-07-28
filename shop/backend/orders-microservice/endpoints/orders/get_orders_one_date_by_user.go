@@ -83,14 +83,14 @@ func GetOrdersOneDateByUser(w http.ResponseWriter, r *http.Request, db *sql.DB, 
 
 		defer rows.Close()
 
-		if err := helpers.ForRowsAfterQuery(rows, ordersMap, productIDsSet); err != nil {
-			fmt.Println(err)
+		orderIDs, err := helpers.ForRowsAfterQuery(rows, ordersMap, productIDsSet)
+		if err != nil {
 			http.Error(w, "Server error", http.StatusInternalServerError)
 			return
 		}
 
-		for _, order := range ordersMap {
-			orders = append(orders, *order)
+		for _, id := range orderIDs {
+			orders = append(orders, *ordersMap[id])
 		}
 	}
 

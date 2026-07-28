@@ -2,6 +2,7 @@ package recovery
 
 import (
 	"authorization-microservice/helpers"
+	"authorization-microservice/interfaces"
 	"authorization-microservice/models"
 	"database/sql"
 	"encoding/json"
@@ -117,16 +118,17 @@ func SendCodeRecoveryPasswordInEmail(w http.ResponseWriter, r *http.Request, db 
 
 			auth := smtp.PlainAuth("", from, password, "smtp.gmail.com")
 
-			err = smtp.SendMail(
-				"smtp.gmail.com:587",
-				auth,
-				from,
-				to,
-				msg,
-			)
+			var notifier interfaces.Notifier = interfaces.EmailData{
+				Auth: auth,
+				From: from,
+				To:   to,
+			}
+
+			err = notifier.Send(msg)
 
 			if err != nil {
-				fmt.Println(err)
+				http.Error(w, "Error send code", http.StatusInternalServerError)
+				return
 			}
 
 			w.Header().Set("Content-Type", "application/json")

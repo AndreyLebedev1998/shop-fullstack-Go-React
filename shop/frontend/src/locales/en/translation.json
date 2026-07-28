@@ -2,10 +2,9 @@
     "header": {
         "offcanvas": {
             "categories": {
-                "Carbonated drinks": "Carbonated drinks",
-                "Energy drinks": "Energy drinks",
-                "Soda": "Soda"
-            }
+                "Carbonated drinks": "Carbonated drinks"
+            },
+            "favorite_products": "Favorite products"
         },
         "links": {
             "home": "Home",
@@ -52,9 +51,13 @@
         "enter_the_code_six_symbols": "Enter the code. 6 symbols",
         "close": "Close",
         "send": "Send",
-        "error_code_mathing": "Error. Please try again later.",
+        "error": "Error. Please try again later.",
         "new_password": "New password. Minimum 5 characters.",
-        "password_confirmation": "Password confirmation"
+        "password_confirmation": "Password confirmation",
+        "not_match_password": "the passwords don't match",
+        "success_recovery_password": "Password changed successfully",
+        "invalid_email": "User not found",
+        "error_send_code_email": "Error sending the code to your email. Try disabling your VPN if it is turned on."
     },
     "orders": {
         "order": "order",
@@ -75,5 +78,20 @@
         "place_order": "Place order",
         "cart_is_empty": "The cart is empty",
         "order_error": "Email or phone number must be filled in correctly"
+    },
+    "filters": {
+        "price": "Price",
+        "from": "From",
+        "to": "To"
+    },
+    "helpers": {
+        "search": "Search"
+    },
+    "home": {
+        "already_bought": "Already bought",
+        "recommendations": "Recommendations"
+    },
+    "product_page": {
+        "not_available": "Not available"
     }
 }

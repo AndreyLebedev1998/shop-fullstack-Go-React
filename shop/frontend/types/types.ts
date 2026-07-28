@@ -5,6 +5,8 @@ export type Products = {
     price: number
     image_url: string
     availability_of_pieces: number
+    subcategory_id: number
+    category_name: string
 }
 
 export type Subcategories = {
@@ -140,4 +142,52 @@ export type RecoveryPasswordData = {
     token: string
     new_password: string
     confirmation_password: string
+}
+
+export type MessageSuccess = {
+    message: string
+}
+
+export type FiltersType = {
+    category_id: string
+    subcategory_id: string
+    min_price: string
+    max_price: string
+}
+
+export type InitialValuesForFilter = {
+    min_price: number
+    max_price: number
+}
+
+export type FavoriteProduct = {
+    id: number
+    product_name: string
+    price: number
+    category_id: number
+    image_url: string
+    availability_of_pieces: number
+    subcategory_id: number
+    user_id: number
+}
+
+export type ProductId = {
+    product_id: number
+}
+
+export type ResRemoveFavoriteProduct = {
+    user_id: number
+    product_id: number
+}
+
+export type RecommendationProduct = {
+  id: number;
+  product_name: string;
+  price: number;
+  category_id: number;
+  image_url: string;
+  availability_of_pieces: number;
+  subcategory_id: number;
+  category_name: string;
+  rating: string;
 }

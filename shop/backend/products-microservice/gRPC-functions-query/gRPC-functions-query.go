@@ -12,7 +12,7 @@ import (
 func GetProductByIds(db *sql.DB, products_ids []int) ([]models.ProductWithCategory, error) {
 	query := `SELECT products.id, product_name, category_id, price, image_url, availability_of_pieces, category_name FROM products
 			  JOIN categories ON products.category_id = categories.id
-			  WHERE products.id = ANY($1)`
+			  WHERE products.id = ANY($1) ORDER BY availability_of_pieces DESC`
 	var prodcuts []models.ProductWithCategory
 
 	rows, err := db.Query(query, pq.Array(products_ids))

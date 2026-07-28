@@ -3,7 +3,8 @@
         "offcanvas": {
             "categories": {
                 "Carbonated drinks": "Газированные напитки"
-            }
+            },
+            "favorite_products": "Любимые продукты"
         },
         "links": {
             "home": "Главная",
@@ -50,9 +51,13 @@
         "enter_the_code_six_symbols": "Введите код. 6 символов",
         "close": "Закрыть",
         "send": "Отправить",
-        "error_code_mathing": "Ошибка. Попробуйте позже",
+        "error": "Ошибка. Попробуйте позже",
         "new_password": "Новый пароль. Минимум 5 сиволов.",
-        "password_confirmation": "Подтверждение пароля"
+        "password_confirmation": "Подтверждение пароля",
+        "not_match_password": "Пароли не совпадают.",
+        "success_recovery_password": "Пароль успешно изменен",
+        "invalid_email": "Пользователь не найден",
+        "error_send_code_email": "Ошибка отправки кода на email. Попробуйте отключить vpn, если он включен"
     },
     "orders": {
         "order": "Заказ",
@@ -73,5 +78,20 @@
         "place_order": "Заказать",
         "cart_is_empty": "Корзина пустая",
         "order_error": "Почта или телефон должны быть заполнены корректно"
+    },
+    "filters": {
+        "price": "Цена",
+        "from": "От",
+        "to": "До"
+    },
+    "helpers": {
+        "search": "Поиск"
+    },
+    "home": {
+        "already_bought": "Уже покупали",
+        "recommendations": "Рекомендации"
+    },
+    "product_page": {
+        "not_available": "Нет в наличии"
     }
 }

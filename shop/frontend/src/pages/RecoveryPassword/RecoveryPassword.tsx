@@ -10,7 +10,7 @@ import {
 } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
 import "./recovery-password.css";
-import { codeMatching, sendCodeTg } from "../../api/auth-api/auth-api";
+import { codeMatching, sendCodeEmail, sendCodeTg } from "../../api/auth-api/auth-api";
 import { useDispatch } from "react-redux";
 import { setEmailRecoveryPassword, setNewToken } from "../../store/authSlice";
 import { useNavigate } from "react-router-dom";
@@ -29,10 +29,15 @@ const RecoveryPassword = () => {
   const [showModalRecoveryPassword, setShowRecoveryPassword] = useState(false);
   const [errorCodeMathing, setErrorCodeMathing] = useState(false)
   const [showErrorCodeMatching, setShowErrorCodeMatching] = useState(false);
+  const [errorEmailIsNoDefined, setErrorEmailIsNoDefined] = useState(false);
+  const [errorCodeMathingEmail, setErrorCodeMathingEmail] = useState(false);
+  const [showSuccessMessageEmail, setShowSuccessMessageEmail] = useState(false); 
+  const [disabled, setDisabled] = useState(false)
   const [code, setCode] = useState("");
 
   const handleSendTg = () => {
     if (!email && !email.includes("@")) return;
+    setDisabled(true)
     sendCodeTg(
       email,
       setErrorMessage,
@@ -47,7 +52,29 @@ const RecoveryPassword = () => {
         setShowRecoveryPassword(true);
         setErrorMessage(false)
       }
-    });
+    }).finally(() => {
+      setDisabled(false)
+    })
+  };
+
+  const handleSendEmail = () => {
+    if (!email && !email.includes("@")) return;
+    setDisabled(true)
+    sendCodeEmail(
+      email,
+      setErrorEmailIsNoDefined,
+      setErrorCodeMathingEmail,
+    ).then((data) => {
+      if (data) {
+        setSuccessMeaage(true);
+        setErrorEmailIsNoDefined(false);
+        setShowSuccessMessageEmail(true);
+        setShowRecoveryPassword(true);
+
+      }
+    }).finally(() => {
+      setDisabled(false)
+    })
   };
 
   const handleCodeMatching = () => {
@@ -90,7 +117,7 @@ const RecoveryPassword = () => {
               dismissible
               variant="danger"
             >
-              {t("auth.error_code_mathing")}
+              {t("auth.error")}
             </Alert>
           )}
             <Form.Control type="number" onChange={(e) => setCode(e.target.value)} aria-describedby="passwordHelpBlock"/>
@@ -114,7 +141,27 @@ const RecoveryPassword = () => {
               dismissible
               variant="danger"
             >
-              {t("auth.error_send_code")}
+              {t("auth.error")}
+            </Alert>
+          )}
+          {errorEmailIsNoDefined && (
+            <Alert
+              className="error-alert-email"
+              onClose={() => setErrorEmailIsNoDefined(false)}
+              dismissible
+              variant="danger"
+            >
+              {t("auth.invalid_email")}
+            </Alert>
+          )}
+          {errorCodeMathingEmail && (
+            <Alert
+              className="error-alert-email"
+              onClose={() => setErrorCodeMathingEmail(false)}
+              dismissible
+              variant="danger"
+            >
+              {t("auth.error_send_code_email")}
             </Alert>
           )}
           {successMessage && showSuccessMessage && (
@@ -130,10 +177,23 @@ const RecoveryPassword = () => {
               <span>{t("auth.expectation_one_minute")}</span>
             </>
           )}
-          {errorMessageChatId && showErrorMessageChatId && (
+          {showSuccessMessageEmail && (
             <>
               <Alert
                 className="message-success-send-code"
+                onClose={() => setShowSuccessMessage(false)}
+                dismissible
+                variant="success"
+              >
+                {t("auth.code_sent_successfully")}
+              </Alert>
+              <span>{t("auth.expectation_one_minute")}</span>
+            </>
+          )}
+          {errorMessageChatId && showErrorMessageChatId && (
+            <>
+              <Alert
+                className="message-not-chat-id"
                 onClose={() => setShowErrorMessageChatId(true)}
                 dismissible
                 variant="danger"
@@ -168,6 +228,7 @@ const RecoveryPassword = () => {
                 type="button"
                 variant="info"
                 onClick={handleSendTg}
+                disabled={disabled}
               >
                 {t("auth.send_code_telegram")}
                 <i className="bi bi-telegram send-code-tg-icon"></i>
@@ -177,6 +238,8 @@ const RecoveryPassword = () => {
               className="send-code-tg-email"
               type="button"
               variant="success"
+              onClick={handleSendEmail}
+              disabled={disabled}
             >
               {t("auth.send_code_email")}{" "}
               <i className="bi bi-envelope send-code-email-icon"></i>

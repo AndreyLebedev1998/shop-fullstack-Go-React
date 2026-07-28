@@ -1,7 +1,6 @@
 .products-categories {
   display: flex;
   gap: 20px;
-  flex-wrap: wrap;
   padding: 20px;
 }
 
@@ -54,20 +53,12 @@
   border-radius: 7px;
 }
 
-.swiper-product-subcategories {
+.swiper-product {
   padding: 10px !important; /* Перекроет стили свайпера */
   border-top: 1px solid #cbcbcb;
   border-bottom: 1px solid #cbcbcb;
-}
-
-.swiper-wrapper {
-  transition-timing-function: linear !important;
-}
-
-.swiper-product-subcategories {
-    padding: 10px 40px !important;
-    border-top: 1px solid #cbcbcb;
-    border-bottom: 1px solid #cbcbcb;
+  background-color: #f8f6f6;
+  width: 100%;
 }
 
 .swiper-button-prev, 
@@ -75,13 +66,6 @@
     width: 25px !important; /* Перекроет стили свайпера */
     height: 25px !important; /* Перекроет стили свайпера */
     top: 35px !important; /* Перекроет стили свайпера */
-}
-
-.swiper-product-subcategories {
-    padding: 8px 44px !important;
-    border-top: 1px solid #e0e0e0;
-    border-bottom: 1px solid #e0e0e0;
-    background: #fafafa;
 }
 
 .swiper-button-prev::after,
@@ -163,4 +147,23 @@
     text-align: center;
     font-size: 18px;
     font-weight: 600;
+}
+
+.bi-filter, 
+.bi-filter-circle {
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0 10px;
+}
+
+.swiper-product-slide {
+  width: 170px !important;
+  height: auto;
+}
+
+.bi-sort-down,
+.bi-sort-up {
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0 10px;
 }

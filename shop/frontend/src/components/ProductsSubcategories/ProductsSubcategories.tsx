@@ -1,31 +1,31 @@
 import { useEffect, useState, type FC } from "react";
 import { getProductsForSubcategories } from "../../api/products-api/products-api";
-import { Button, Card } from "react-bootstrap";
-import { config } from "../../config";
-import { useTranslation } from "react-i18next";
 import "./subcategory-products.css";
 import type {
+  InitialValuesForFilter,
   ProductIdType,
-  Products,
-  SubcategoryProductType,
+  Products
 } from "../../../types/types";
-import type { RootState } from "../../store/store";
-import { useSelector } from "react-redux";
+import Filters from "../Filters/Filters";
+import ProductsList from "../ProductsList/ProductsList.tsx";
 
 interface ProductsSubcategoriesType {
+  categoryId: number,
   choiceSubcategory: number;
   addProductToCart: (product: Products) => void;
   deleteProductInCart: (productId: ProductIdType) => void;
+  initialValuesForFilter: InitialValuesForFilter | null
 }
 
 const ProductsSubcategories: FC<ProductsSubcategoriesType> = ({
+  categoryId,
   choiceSubcategory,
   addProductToCart,
   deleteProductInCart,
+  initialValuesForFilter,
 }) => {
-  const { t } = useTranslation();
-  const [products, setProducts] = useState<SubcategoryProductType[]>([]);
-  const cart = useSelector((state: RootState) => state.cart.cart);
+  const [products, setProducts] = useState<Products[]>([]);
+  const [showFilter, setShowFilter] = useState(false)
   useEffect(() => {
     getProductsForSubcategories(choiceSubcategory).then((data) =>
       setProducts(data),
@@ -33,56 +33,9 @@ const ProductsSubcategories: FC<ProductsSubcategoriesType> = ({
   }, [choiceSubcategory]);
   return (
     <div className="products-subcategories">
-      {products &&
-        products.length > 0 &&
-        products.map((product) => {
-          const productInOrder = cart?.order_items.find(
-            (el) => el.product_id === product.id,
-          );
-          return (
-            <Card key={product.id} className="product-subcategories">
-              <Card.Img
-                className="products-subcategories__img-product"
-                variant="top"
-                src={`${config.PRODUCTS_IMAGES_BASE_URL}/${product.image_url}`}
-              />
-              <Card.Body>
-                <Card.Title>{product.product_name}</Card.Title>
-                <Card.Text>{product.price} ₽</Card.Text>
-                <div className="product-actions">
-                  {productInOrder && productInOrder.quantity ? (
-                    <div className="add-to-cart-actions">
-                      <button
-                        className="cart-btn"
-                        onClick={() =>
-                          deleteProductInCart({ product_id: product.id })
-                        }
-                      >
-                        −
-                      </button>
-                      <span className="cart-quantity">
-                        {productInOrder.quantity}
-                      </span>
-                      <button
-                        className="cart-btn"
-                        onClick={() => addProductToCart(product)}
-                      >
-                        +
-                      </button>
-                    </div>
-                  ) : (
-                    <Button
-                      onClick={() => addProductToCart(product)}
-                      variant="primary"
-                    >
-                      {t("orders.add_to_cart")}
-                    </Button>
-                  )}
-                </div>
-              </Card.Body>
-            </Card>
-          );
-        })}
+      {showFilter ? <i className="bi bi-filter-circle" onClick={() => setShowFilter(false)}></i> : <i className="bi bi-filter" onClick={() => setShowFilter(true)}></i>}
+      {showFilter ? <Filters categoryId={String(categoryId) || ""} subcategoryId={String(choiceSubcategory) || ""} initialValuesForFilter={initialValuesForFilter} setProducts={setProducts}/> : null}
+      <ProductsList products={products} deleteProductInCart={deleteProductInCart} addProductToCart={addProductToCart} isSwiper={false} />
     </div>
   );
 };

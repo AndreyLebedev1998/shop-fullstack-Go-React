@@ -120,3 +120,18 @@ type TimeStampOrder struct {
 type Token struct {
 	Token string `json:"token"`
 }
+
+type ProductResponse struct {
+	Id                   int64   `json:"id"`
+	ProductName          string  `json:"product_name"`
+	CategoryId           int64   `json:"category_id"`
+	CategoryName         string  `json:"category_name"`
+	ImageUrl             string  `json:"image_url"`
+	AvailabilityOfPieces int64   `json:"availability_of_pieces"`
+	Price                float64 `json:"price"`
+}
+
+type ProductStats struct {
+	ProductId     int `json:"product_id"`
+	PurchaseCount int `json:"purchase_count"`
+}

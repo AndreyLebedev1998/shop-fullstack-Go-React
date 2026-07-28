@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"orders-microservice/cors"
+	createkafkatopic "orders-microservice/create-kafka-topic"
 	"orders-microservice/endpoints/orders"
 	grpc_package "orders-microservice/gRPC"
 	"os"
@@ -19,6 +20,7 @@ import (
 	product "github.com/AndreyLebedev1998/shop-gRPC-product"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/redis/go-redis/v9"
+	"github.com/segmentio/kafka-go"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/credentials/insecure"
@@ -26,8 +28,12 @@ import (
 	_ "github.com/lib/pq"
 )
 
+var writer *kafka.Writer
+
 func main() {
 	connStr := os.Getenv("DB_CONN")
+	kafkaBroker := os.Getenv("KAFKA_BROKERS")
+	topicName := "product_stats"
 	var db *sql.DB
 
 	db, err := sql.Open("postgres", connStr)
@@ -124,7 +130,7 @@ func main() {
 		log.Fatal("gRPC dial error:", err)
 	}
 
-	defer conn.Close()
+	defer connAuth.Close()
 
 	clientAuth := auth.NewAuthServiceClient(connAuth)
 
@@ -145,7 +151,7 @@ func main() {
 		log.Fatal("gRPC dial error:", err)
 	}
 
-	defer conn.Close()
+	defer connAdmin.Close()
 
 	clientAdmin := admin.NewAdminServiceClient(connAdmin)
 
@@ -168,8 +174,23 @@ func main() {
 		}
 	}
 
+	errorKafka := createkafkatopic.CreateKafkaTopic(kafkaBroker, topicName, 6, 1)
+
+	if errorKafka != nil {
+		fmt.Println("kafka topic error", errorKafka)
+	} else {
+		fmt.Println("Kafka topic create:", topicName)
+	}
+
+	writer = kafka.NewWriter(kafka.WriterConfig{
+		Topic:   topicName,
+		Brokers: []string{os.Getenv("KAFKA_BROKERS")},
+	})
+
+	defer writer.Close()
+
 	mux.Handle("/create-order", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		orders.CreateOrder(w, r, db, client, clientAuth, bot)
+		orders.CreateOrder(w, r, db, client, clientAuth, bot, writer)
 	})))
 
 	mux.Handle("/change-order", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -194,6 +215,10 @@ func main() {
 
 	mux.Handle("/get-order-by-id", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		orders.GetOrderById(w, r, db, client)
+	})))
+
+	mux.Handle("/allready-bought-products", cors.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		orders.AlreadyBoughtProducts(w, r, db, clientAuth, client)
 	})))
 
 	http.ListenAndServe(":8080", mux)

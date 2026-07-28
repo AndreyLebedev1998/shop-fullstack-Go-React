@@ -1,0 +1,4 @@
+.favorite-products-page {
+    min-height: calc(100vh - var(--header-height));
+    padding: 15px;
+}

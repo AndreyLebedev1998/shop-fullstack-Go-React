@@ -67,7 +67,7 @@ func GetOrdersByParametr(w http.ResponseWriter, r *http.Request, db *sql.DB, rdb
 						product_id, quantity, order_items.price
 						FROM orders 
 						JOIN order_items ON orders.id = order_items.order_id 
-						WHERE user_id = $1`
+						WHERE user_id = $1 ORDER BY created_at DESC`
 
 	rows, err := db.QueryContext(ctx, query, userId)
 
@@ -78,13 +78,14 @@ func GetOrdersByParametr(w http.ResponseWriter, r *http.Request, db *sql.DB, rdb
 
 	defer rows.Close()
 
-	if err := helpers.ForRowsAfterQuery(rows, ordersMap, productIDsSet); err != nil {
+	orderIDs, err := helpers.ForRowsAfterQuery(rows, ordersMap, productIDsSet)
+	if err != nil {
 		http.Error(w, "Server error", http.StatusInternalServerError)
 		return
 	}
 
-	for _, order := range ordersMap {
-		fullOrders = append(fullOrders, *order)
+	for _, id := range orderIDs {
+		fullOrders = append(fullOrders, *ordersMap[id])
 	}
 
 	var productIDs []int64
@@ -109,7 +110,6 @@ func GetOrdersByParametr(w http.ResponseWriter, r *http.Request, db *sql.DB, rdb
 	}
 
 	for i := range fullOrders {
-		fmt.Println(fullOrders)
 		for j := range fullOrders[i].Products {
 
 			pid := int64(fullOrders[i].Products[j].ProductId)
